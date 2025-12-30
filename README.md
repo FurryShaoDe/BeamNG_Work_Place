@@ -56,7 +56,7 @@ python -m http.server
   "car": "车辆名称",
   "track": "赛道名称",
   "layout": "赛道布局",
-  "time": "圈速 (格式: 1:23.456)",
+  "time": "圈速 (格式: 01:23.456)",
   "start_type": "起步方式 (静态起步/动态起步)",
   "power_type": "动力类型 (油车/电车)",
   "control_type": "控制方式 (方向盘/手柄/键盘)",
