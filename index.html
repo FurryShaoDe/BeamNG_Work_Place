@@ -1,13 +1,12 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>圈速排行榜</title>
-  <link rel="stylesheet" href="style.css">
-</head>
 <body>
 
   <h1>🏁 圈速排行榜</h1>
+
+  <label for="trackSelect">选择赛道：</label>
+  <select id="trackSelect">
+    <option value="all">全部</option>
+    <!-- JS 会自动添加赛道选项 -->
+  </select>
 
   <table id="lapTable">
     <thead>
@@ -29,4 +28,3 @@
 
   <script src="main.js"></script>
 </body>
-</html>
