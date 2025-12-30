@@ -37,5 +37,18 @@
     "drivetrain": "后驱",
     "power": 447,
     "date": "2025-12-30"
+  },
+  {
+    "car": "Soliad Lansdale 3.3 S(A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:21.113",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 173,
+    "date": "2025-12-30"
   }
 ]
