@@ -36,11 +36,22 @@ header {
 }
 
 h1 {
-  font-size: 2.2rem; /* 稍微减小字号 */
+  font-size: 2.2rem;
   margin-bottom: 8px;
   background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  
+  /* 文字渐变效果 - 兼容所有现代浏览器 */
+  -webkit-background-clip: text;  /* Safari, Chrome */
+  background-clip: text;           /* 标准语法 */
+  -webkit-text-fill-color: transparent;  /* Safari, Chrome */
+  color: transparent;              /* 标准语法 */
+  
+  /* 回退方案：如果浏览器不支持，显示纯色 */
+  @supports not (background-clip: text) {
+    color: #ff0080;  /* 显示渐变中的第一个颜色 */
+    background: none;
+  }
+  
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -99,7 +110,7 @@ table {
 th {
   background: linear-gradient(90deg, #1a1a2e, #16213e);
   padding: 12px 10px; /* 减小内边距 */
-  text-align: left;
+  text-align: center;
   font-weight: bold;
   color: #40e0d0;
   border-bottom: 2px solid #ff0080;
@@ -114,6 +125,7 @@ td {
   padding: 10px 8px; /* 减小内边距 */
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   white-space: nowrap; /* 防止内容换行 */
+  text-align: center; /* 添加居中对齐 */
 }
 
 .time-cell {
@@ -180,6 +192,21 @@ td:nth-child(11) { /* 日期列 */
   text-align: center;
 }
 
+/* 控制类型样式 - 绿色透明背景 */
+.control-wheel, 
+.control-gamepad, 
+.control-keyboard {
+  background: rgba(76, 175, 80, 0.3) !important; /* 绿色透明背景 */
+  color: #fff !important; /* 白色文字 */
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  display: inline-block;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  min-width: 60px;
+}
+
 /* 统计区域 */
 .stats {
   display: flex;
@@ -200,6 +227,7 @@ td:nth-child(11) { /* 日期列 */
   
   th, td {
     padding: 10px 6px;
+    text-align: center; /* 改为居中对齐 */
     font-size: 0.85rem;
   }
 }
