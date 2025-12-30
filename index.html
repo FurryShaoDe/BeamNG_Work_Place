@@ -3,98 +3,300 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BeamNG圈速榜</title>
+  <title>🏁 BeamNG赛车圈速榜</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1a1a2e;
-      color: white;
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 20px;
+      padding: 0;
     }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
     }
-    h1 {
+    
+    header {
       text-align: center;
-      color: #40e0d0;
       margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .game-info {
+      color: #aaa;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    
     .filters {
-      background: rgba(0,0,0,0.3);
-      padding: 15px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 20px;
       border-radius: 10px;
       margin-bottom: 20px;
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-group label {
+      font-weight: bold;
+      color: #40e0d0;
+    }
+    
     select, button {
       padding: 8px 15px;
       border-radius: 5px;
       border: 1px solid #333;
       background: #2a2a3e;
       color: white;
+      font-size: 0.9rem;
     }
+    
+    select:focus, button:hover {
+      outline: none;
+      border-color: #40e0d0;
+    }
+    
     button {
-      background: #4CAF50;
+      background: linear-gradient(90deg, #ff0080, #ff8c00);
       border: none;
       cursor: pointer;
+      transition: transform 0.2s;
+      font-weight: bold;
     }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
     table {
       width: 100%;
       border-collapse: collapse;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.3);
       border-radius: 10px;
       overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
+    
     th {
-      background: #16213e;
+      background: linear-gradient(90deg, #1a1a2e, #16213e);
+      padding: 15px;
+      text-align: left;
+      font-weight: bold;
       color: #40e0d0;
+      border-bottom: 2px solid #ff0080;
       cursor: pointer;
+      user-select: none;
+      position: relative;
     }
-    tbody tr:hover {
-      background: rgba(255,255,255,0.05);
+    
+    th:hover {
+      background: rgba(64, 224, 208, 0.1);
     }
-    .time-cell {
+    
+    th.sort-asc::after {
+      content: " ▲";
+      position: absolute;
+      right: 10px;
       color: #ff8c00;
-      font-family: monospace;
+    }
+    
+    th.sort-desc::after {
+      content: " ▼";
+      position: absolute;
+      right: 10px;
+      color: #ff8c00;
+    }
+    
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    tbody tr {
+      transition: background 0.2s;
+    }
+    
+    tbody tr:hover {
+      background: rgba(255, 140, 0, 0.1);
+    }
+    
+    tbody tr:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.01);
+    }
+    
+    .rank-1 {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
+      border-left: 4px solid gold;
+    }
+    
+    .rank-2 {
+      background: linear-gradient(90deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05)) !important;
+      border-left: 4px solid silver;
+    }
+    
+    .rank-3 {
+      background: linear-gradient(90deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)) !important;
+      border-left: 4px solid #cd7f32;
+    }
+    
+    .time-cell {
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #ff8c00;
+      letter-spacing: 1px;
+    }
+    
+    .car-cell {
+      font-weight: bold;
+      color: #40e0d0;
+    }
+    
+    .power-cell {
+      color: #ff0080;
       font-weight: bold;
     }
-    .rank-1 { background: rgba(255,215,0,0.1); }
-    .rank-2 { background: rgba(192,192,192,0.1); }
-    .rank-3 { background: rgba(205,127,50,0.1); }
+    
+    .drivetrain-fwd { color: #4CAF50; }
+    .drivetrain-rwd { color: #2196F3; }
+    .drivetrain-awd { color: #FF9800; }
+    
+    .control-type {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    
+    .control-wheel { background: rgba(33, 150, 243, 0.2); color: #2196F3; }
+    .control-gamepad { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+    .control-keyboard { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
+    
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+    }
+    
+    .error-message {
+      text-align: center;
+      padding: 40px;
+      color: #ff6b6b;
+    }
+    
+    @media (max-width: 768px) {
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-group {
+        width: 100%;
+      }
+      
+      select, button {
+        flex: 1;
+      }
+      
+      table {
+        font-size: 0.9rem;
+      }
+      
+      th, td {
+        padding: 8px 10px;
+      }
+      
+      .hide-mobile {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🏁 BEAMNG.DRIVE 圈速榜</h1>
+    <header>
+      <h1>🏁 BEAMNG.DRIVE 圈速排行榜</h1>
+      <div class="game-info">
+        游戏版本：<span id="gameVersion">0.38.3</span> • 
+        数据更新时间：<span id="updateTime">2025-12-30</span>
+      </div>
+    </header>
     
     <div class="filters">
-      <select id="trackSelect">
-        <option value="all">全部赛道</option>
-      </select>
+      <div class="filter-group">
+        <label for="trackSelect">赛道：</label>
+        <select id="trackSelect">
+          <option value="all">全部赛道</option>
+        </select>
+      </div>
       
-      <select id="layoutSelect">
-        <option value="all">全部布局</option>
-      </select>
+      <div class="filter-group">
+        <label for="layoutSelect">赛道布局：</label>
+        <select id="layoutSelect">
+          <option value="all">全部布局</option>
+        </select>
+      </div>
       
-      <select id="carSelect">
-        <option value="all">全部车辆</option>
-      </select>
+      <div class="filter-group">
+        <label for="carSelect">车辆：</label>
+        <select id="carSelect">
+          <option value="all">全部车辆</option>
+        </select>
+      </div>
       
-      <select id="drivetrainSelect">
-        <option value="all">全部驱动</option>
-        <option value="前驱">前驱</option>
-        <option value="后驱">后驱</option>
-        <option value="四驱">四驱</option>
-      </select>
+      <div class="filter-group">
+        <label for="drivetrainSelect">驱动：</label>
+        <select id="drivetrainSelect">
+          <option value="all">全部驱动</option>
+          <option value="前驱">前驱</option>
+          <option value="后驱">后驱</option>
+          <option value="四驱">四驱</option>
+        </select>
+      </div>
       
       <button id="resetFilters">重置筛选</button>
     </div>
@@ -103,27 +305,28 @@
       <thead>
         <tr>
           <th>排名</th>
-          <th data-sort="car">车辆</th>
-          <th data-sort="track">赛道</th>
-          <th data-sort="layout">赛道布局</th>
+          <th data-sort="car" class="sortable">车辆</th>
+          <th data-sort="track" class="sortable">赛道</th>
+          <th data-sort="layout" class="sortable">赛道布局</th>
           <th data-sort="time" class="sortable">圈速 ⏱</th>
-          <th data-sort="power">马力</th>
-          <th data-sort="drivetrain">驱动</th>
-          <th data-sort="control_type">控制</th>
-          <th data-sort="date">日期</th>
+          <th data-sort="power" class="sortable">马力</th>
+          <th data-sort="drivetrain" class="sortable">驱动</th>
+          <th data-sort="control_type" class="sortable hide-mobile">控制</th>
+          <th data-sort="date" class="sortable">日期</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- 数据将由JavaScript动态生成 -->
+      </tbody>
     </table>
     
-    <div style="margin-top: 20px; color: #aaa; text-align: center;">
-      总记录数: <span id="totalRecords">0</span> | 
-      最快圈速: <span id="fastestTime">--:--.--</span> | 
-      平均马力: <span id="avgPower">0</span> hp
+    <div class="stats">
+      <div>总记录数：<span id="totalRecords">0</span></div>
+      <div>最快圈速：<span id="fastestTime">--:--.--</span></div>
+      <div>平均马力：<span id="avgPower">0</span> hp</div>
     </div>
   </div>
 
-  <!-- 关键：引用本地 main.js 文件 -->
   <script src="main.js"></script>
 </body>
 </html>
