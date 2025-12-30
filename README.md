@@ -19,7 +19,7 @@
 
 ## 🚀 在线预览
 
-(此处可放入你的 GitHub Pages 链接或演示截图)
+[GitHub Pages 演示链接](https://furryshaode.github.io/BeamNG.Time_Attack/)
 
 ## 📦 安装与运行
 
@@ -56,7 +56,6 @@ python -m http.server
 每一条记录是一个 JSON 对象，包含以下字段：
 
 ```json
-[
   {
     "car": "Hirochi SBR4 RWD Base(DCT)",
     "track": "Hirochi赛车场",
@@ -70,7 +69,6 @@ python -m http.server
     "power": 209,
     "date": "2025-12-30"
   }
-]
 ```
 
 ### 如何添加新成绩
@@ -95,5 +93,5 @@ python -m http.server
 ---
 
 <div align="center">
-  Made with ❤️ by ShaoDE
+  Made with ❤️ by ShaoDe
 </div>
