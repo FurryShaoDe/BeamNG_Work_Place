@@ -2,28 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>我的圈速榜单</title>
+  <title>圈速排行榜</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>🏁 圈速榜单</h1>
+  <h1>🏁 圈速排行榜</h1>
 
-<table>
-  <thead>
-    <tr>
-      <th>排名</th>
-      <th>车手</th>
-      <th>赛道</th>
-      <th>圈速</th>
-      <th>日期</th>
-    </tr>
-  </thead>
-  <tbody id="lap-table">
-    <!-- 以后让 JS 自动填 -->
-  </tbody>
-</table>
+  <table id="lapTable">
+    <thead>
+      <tr>
+        <th>排名</th>
+        <th>车手</th>
+        <th>赛道</th>
+        <th id="timeHeader" style="cursor:pointer">
+          圈速 ⏱（点击排序）
+        </th>
+        <th>车辆</th>
+        <th>日期</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JS 会把数据插到这里 -->
+    </tbody>
+  </table>
 
-<script src="script.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

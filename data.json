@@ -1,0 +1,12 @@
+[
+  {
+    "game_version": "0.38.3",
+    "track": "Hirochi赛车场",
+    "track layout": "短途竞速环道",
+    "start_type":"动态起步",
+    "date":"2025-12-30",
+    "control_type":"手柄",
+    "drivetrain":"前驱",
+    "car": "Covet Type-L(A)",
+  }
+]
