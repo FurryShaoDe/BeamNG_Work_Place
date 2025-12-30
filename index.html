@@ -20,7 +20,7 @@
     }
     
     .container {
-      max-width: 1400px;
+      max-width: 1200px;
       margin: 0 auto;
     }
     
@@ -69,6 +69,7 @@
     .filter-group label {
       font-weight: bold;
       color: #40e0d0;
+      white-space: nowrap;
     }
     
     select, button {
@@ -78,6 +79,7 @@
       background: #2a2a3e;
       color: white;
       font-size: 0.9rem;
+      min-width: 120px;
     }
     
     select:focus, button:hover {
@@ -91,6 +93,7 @@
       cursor: pointer;
       transition: transform 0.2s;
       font-weight: bold;
+      white-space: nowrap;
     }
     
     button:hover {
@@ -104,6 +107,7 @@
       border-radius: 10px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 20px;
     }
     
     th {
@@ -216,18 +220,6 @@
       color: #aaa;
     }
     
-    .no-data {
-      text-align: center;
-      padding: 40px;
-      color: #aaa;
-    }
-    
-    .error-message {
-      text-align: center;
-      padding: 40px;
-      color: #ff6b6b;
-    }
-    
     @media (max-width: 768px) {
       .filters {
         flex-direction: column;
@@ -261,63 +253,85 @@
     <header>
       <h1>🏁 BEAMNG.DRIVE 圈速排行榜</h1>
       <div class="game-info">
-        游戏版本：<span id="gameVersion">0.38.3</span> • 
         数据更新时间：<span id="updateTime">2025-12-30</span>
       </div>
     </header>
     
+    <!-- 筛选器区域 - 确保所有ID与JavaScript匹配 -->
     <div class="filters">
-  <!-- 已有筛选器... -->
-  
-  <div class="filter-group">
-    <label for="layoutSelect">布局：</label>
-    <select id="layoutSelect">
-      <option value="all">全部布局</option>
-    </select>
-  </div>
-  
-  <div class="filter-group">
-    <label for="startTypeSelect">起步：</label>
-    <select id="startTypeSelect">
-      <option value="all">全部起步</option>
-      <option value="静态起步">静态起步</option>
-      <option value="动态起步">动态起步</option>
-    </select>
-  </div>
-  
-  <div class="filter-group">
-    <label for="powerTypeSelect">动力：</label>
-    <select id="powerTypeSelect">
-      <option value="all">全部动力</option>
-      <option value="油车">油车</option>
-      <option value="电车">电车</option>
-    </select>
-  </div>
-  
-  <button id="resetFilters">重置筛选</button>
-</div>
+      <div class="filter-group">
+        <label for="trackSelect">赛道：</label>
+        <select id="trackSelect">
+          <option value="all">全部赛道</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="carSelect">车辆：</label>
+        <select id="carSelect">
+          <option value="all">全部车辆</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="drivetrainSelect">驱动：</label>
+        <select id="drivetrainSelect">
+          <option value="all">全部驱动</option>
+          <option value="前驱">前驱</option>
+          <option value="后驱">后驱</option>
+          <option value="四驱">四驱</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="layoutSelect">布局：</label>
+        <select id="layoutSelect">
+          <option value="all">全部布局</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="startTypeSelect">起步：</label>
+        <select id="startTypeSelect">
+          <option value="all">全部起步</option>
+          <option value="静态起步">静态起步</option>
+          <option value="动态起步">动态起步</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="powerTypeSelect">动力：</label>
+        <select id="powerTypeSelect">
+          <option value="all">全部动力</option>
+          <option value="油车">油车</option>
+          <option value="电车">电车</option>
+        </select>
+      </div>
+      
+      <button id="resetFilters">重置筛选</button>
+    </div>
     
-    <!-- 只更新表格部分，其他部分保持不变 -->
-<table id="lapTable">
-  <thead>
-    <tr>
-      <th data-sort="rank">排名</th>
-      <th data-sort="car" class="sortable">车辆</th>
-      <th data-sort="track" class="sortable">赛道</th>
-      <th data-sort="layout" class="sortable hide-mobile">布局</th>
-      <th data-sort="time" class="sortable">圈速 ⏱</th>
-      <th data-sort="power" class="sortable">马力</th>
-      <th data-sort="drivetrain" class="sortable">驱动</th>
-      <th data-sort="power_type" class="sortable">动力</th>
-      <th data-sort="start_type" class="sortable hide-mobile">起步</th>
-      <th data-sort="control_type" class="sortable hide-mobile">控制</th>
-      <th data-sort="date" class="sortable">日期</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- 数据将由JavaScript动态生成 -->
-  </tbody>
-</table>
+    <!-- 表格区域 -->
+    <table id="lapTable">
+      <thead>
+        <tr>
+          <th data-sort="rank">排名</th>
+          <th data-sort="car" class="sortable">车辆</th>
+          <th data-sort="track" class="sortable">赛道</th>
+          <th data-sort="layout" class="sortable hide-mobile">布局</th>
+          <th data-sort="time" class="sortable">圈速 ⏱</th>
+          <th data-sort="power" class="sortable">马力</th>
+          <th data-sort="drivetrain" class="sortable">驱动</th>
+          <th data-sort="power_type" class="sortable">动力</th>
+          <th data-sort="start_type" class="sortable hide-mobile">起步</th>
+          <th data-sort="control_type" class="sortable hide-mobile">控制</th>
+          <th data-sort="date" class="sortable">日期</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 数据将由JavaScript动态生成 -->
+      </tbody>
+    </table>
     
     <div class="stats">
       <div>总记录数：<span id="totalRecords">0</span></div>
