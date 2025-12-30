@@ -52,19 +52,18 @@ python -m http.server
 每一条记录是一个 JSON 对象，包含以下字段：
 
 ```json
-  {
-    "car": "Hirochi SBR4 RWD Base(DCT)",
-    "track": "Hirochi赛车场",
-    "layout": "短途竞速环道",
-    "time": "01:08.769",
-    "start_type": "动态起步",
-    "power_type": "油车",
-    "game_version": "0.38.3",
-    "control_type": "手柄",
-    "drivetrain": "后驱",
-    "power": 209,
-    "date": "2025-12-30"
-  }
+{
+  "car": "车辆名称",
+  "track": "赛道名称",
+  "layout": "赛道布局",
+  "time": "圈速 (格式: 1:23.456)",
+  "start_type": "起步方式 (静态起步/动态起步)",
+  "power_type": "动力类型 (油车/电车)",
+  "control_type": "控制方式 (方向盘/手柄/键盘)",
+  "drivetrain": "驱动方式 (前驱/后驱/四驱)",
+  "power": 马力数值,
+  "date": "日期 (YYYY-MM-DD)"
+}
 ```
 
 ### 如何添加新成绩

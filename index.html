@@ -6,292 +6,350 @@
   <title>🏁 BeamNG赛车圈速榜</title>
   <style>
     * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
-  padding: 10px 15px; /* 减少内边距 */
-  min-height: 100vh;
-  overflow-x: hidden; /* 防止水平滚动 */
-}
-
-.container {
-  max-width: 99%; /* 几乎占满屏幕 */
-  margin: 0 auto;
-  width: 100%;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 20px; /* 减少下边距 */
-  padding: 15px; /* 减少内边距 */
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-h1 {
-  font-size: 2.2rem;
-  margin-bottom: 8px;
-  background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0);
-  
-  /* 文字渐变效果 - 兼容所有现代浏览器 */
-  -webkit-background-clip: text;  /* Safari, Chrome */
-  background-clip: text;           /* 标准语法 */
-  -webkit-text-fill-color: transparent;  /* Safari, Chrome */
-  color: transparent;              /* 标准语法 */
-  
-  /* 回退方案：如果浏览器不支持，显示纯色 */
-  @supports not (background-clip: text) {
-    color: #ff0080;  /* 显示渐变中的第一个颜色 */
-    background: none;
-  }
-  
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.game-info {
-  color: #aaa;
-  font-size: 0.85rem;
-  margin-bottom: 15px;
-}
-
-.filters {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 15px; /* 减少内边距 */
-  border-radius: 8px;
-  margin-bottom: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px; /* 减少间距 */
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 6px; /* 减少间距 */
-}
-
-.filter-group label {
-  font-weight: bold;
-  color: #40e0d0;
-  white-space: nowrap;
-  font-size: 0.9rem; /* 减小标签字号 */
-}
-
-select, button {
-  padding: 6px 12px; /* 减小内边距 */
-  border-radius: 4px;
-  border: 1px solid #333;
-  background: #2a2a3e;
-  color: white;
-  font-size: 0.85rem; /* 减小字号 */
-  min-width: 110px; /* 减小最小宽度 */
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 15px;
-  font-size: 0.9rem; /* 减小表格字号 */
-}
-
-th {
-  background: linear-gradient(90deg, #1a1a2e, #16213e);
-  padding: 12px 10px; /* 减小内边距 */
-  text-align: center;
-  font-weight: bold;
-  color: #40e0d0;
-  border-bottom: 2px solid #ff0080;
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  font-size: 0.9rem; /* 减小表头字号 */
-  white-space: nowrap; /* 防止表头换行 */
-}
-
-td {
-  padding: 10px 8px; /* 减小内边距 */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  white-space: nowrap; /* 防止内容换行 */
-  text-align: center; /* 添加居中对齐 */
-}
-
-.time-cell {
-  font-family: 'Courier New', monospace;
-  font-size: 1rem; /* 稍微减小字号 */
-  font-weight: bold;
-  color: #ff8c00;
-  letter-spacing: 0.5px;
-}
-
-/* 调整列宽优化 */
-td:nth-child(1) { /* 排名列 */
-  width: 60px;
-  text-align: center;
-}
-
-td:nth-child(2) { /* 车辆列 */
-  width: 180px;
-  min-width: 150px;
-}
-
-td:nth-child(3) { /* 赛道列 */
-  width: 140px;
-  min-width: 120px;
-}
-
-td:nth-child(4) { /* 布局列 */
-  width: 140px;
-  min-width: 120px;
-}
-
-td:nth-child(5) { /* 圈速列 */
-  width: 120px;
-  text-align: center;
-}
-
-td:nth-child(6) { /* 马力列 */
-  width: 90px;
-  text-align: center;
-}
-
-td:nth-child(7) { /* 驱动列 */
-  width: 80px;
-  text-align: center;
-}
-
-td:nth-child(8) { /* 动力列 */
-  width: 80px;
-  text-align: center;
-}
-
-td:nth-child(9) { /* 起步列 */
-  width: 100px;
-  text-align: center;
-}
-
-td:nth-child(10) { /* 控制列 */
-  width: 100px;
-  text-align: center;
-}
-
-td:nth-child(11) { /* 日期列 */
-  width: 110px;
-  text-align: center;
-}
-
-/* 控制类型样式 - 绿色透明背景 */
-.control-wheel, 
-.control-gamepad, 
-.control-keyboard {
-  background: rgba(76, 175, 80, 0.3) !important; /* 绿色透明背景 */
-  color: #fff !important; /* 白色文字 */
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  display: inline-block;
-  border: 1px solid rgba(76, 175, 80, 0.5);
-  min-width: 60px;
-}
-
-/* 统计区域 */
-.stats {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: #aaa;
-}
-
-/* 响应式调整 */
-@media (max-width: 1400px) {
-  .container {
-    max-width: 97%;
-  }
-  
-  th, td {
-    padding: 10px 6px;
-    text-align: center; /* 改为居中对齐 */
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 1200px) {
-  .container {
-    max-width: 96%;
-  }
-  
-  .filters {
-    gap: 10px;
-  }
-  
-  select, button {
-    min-width: 100px;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  body {
-    padding: 8px 10px;
-  }
-  
-  .container {
-    max-width: 100%;
-  }
-  
-  .filters {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  
-  .filter-group {
-    width: 100%;
-  }
-  
-  select, button {
-    width: 100%;
-  }
-  
-  table {
-    font-size: 0.8rem;
-  }
-  
-  th, td {
-    padding: 8px 4px;
-  }
-  
-  .hide-mobile {
-    display: none;
-  }
-  
-  /* 移动端调整列宽 */
-  td:nth-child(1) { width: 50px; }
-  td:nth-child(2) { width: 120px; }
-  td:nth-child(3) { width: 100px; }
-  td:nth-child(5) { width: 100px; }
-  td:nth-child(6) { width: 70px; }
-  td:nth-child(7) { width: 60px; }
-  td:nth-child(8) { width: 60px; }
-  td:nth-child(11) { width: 90px; }
-}
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 10px 15px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 99%;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .game-info {
+      color: #aaa;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+    }
+    
+    /* 筛选器区域 */
+    .filters {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .filter-group label {
+      font-weight: bold;
+      color: #40e0d0;
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+    
+    select, button, input {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #2a2a3e;
+      color: white;
+      font-size: 0.85rem;
+      min-width: 110px;
+    }
+    
+    #searchInput {
+      flex-grow: 1;
+      min-width: 200px;
+      max-width: 300px;
+    }
+    
+    select:focus, button:hover, input:focus {
+      outline: none;
+      border-color: #40e0d0;
+    }
+    
+    button {
+      background: linear-gradient(90deg, #ff0080, #ff8c00);
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+      font-weight: bold;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    /* 加载状态 */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #40e0d0;
+      font-size: 1.1rem;
+    }
+    
+    .loading.active {
+      display: block;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(64, 224, 208, 0.3);
+      border-radius: 50%;
+      border-top-color: #40e0d0;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* 表格容器 */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 15px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      min-width: 1000px; /* 确保在移动端可以横向滚动 */
+    }
+    
+    th {
+      background: linear-gradient(90deg, #1a1a2e, #16213e);
+      padding: 12px 10px;
+      text-align: center;
+      font-weight: bold;
+      color: #40e0d0;
+      border-bottom: 2px solid #ff0080;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      white-space: nowrap;
+    }
+    
+    th.sort-asc::after {
+      content: " ▲";
+      position: absolute;
+      right: 10px;
+      color: #ff8c00;
+    }
+    
+    th.sort-desc::after {
+      content: " ▼";
+      position: absolute;
+      right: 10px;
+      color: #ff8c00;
+    }
+    
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      white-space: nowrap;
+      text-align: center;
+      transition: background-color 0.2s;
+    }
+    
+    /* 行高亮效果 */
+    tbody tr {
+      transition: background 0.2s;
+    }
+    
+    tbody tr:hover {
+      background: rgba(255, 140, 0, 0.15) !important;
+    }
+    
+    tbody tr.highlight {
+      background: rgba(64, 224, 208, 0.1) !important;
+      box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.3);
+    }
+    
+    tbody tr:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.01);
+    }
+    
+    .rank-1 {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
+      border-left: 4px solid gold;
+    }
+    
+    .rank-2 {
+      background: linear-gradient(90deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05)) !important;
+      border-left: 4px solid silver;
+    }
+    
+    .rank-3 {
+      background: linear-gradient(90deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)) !important;
+      border-left: 4px solid #cd7f32;
+    }
+    
+    /* 特定单元格样式 */
+    .time-cell {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #ff8c00;
+      letter-spacing: 0.5px;
+    }
+    
+    .car-cell {
+      font-weight: bold;
+      color: #40e0d0;
+    }
+    
+    .power-cell {
+      color: #ff0080;
+      font-weight: bold;
+    }
+    
+    .drivetrain-fwd { color: #4CAF50; }
+    .drivetrain-rwd { color: #2196F3; }
+    .drivetrain-awd { color: #FF9800; }
+    
+    /* 控制类型 - 绿色透明背景 */
+    .control-type {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      background: rgba(76, 175, 80, 0.3) !important;
+      color: #fff !important;
+      border: 1px solid rgba(76, 175, 80, 0.5);
+      display: inline-block;
+      min-width: 60px;
+    }
+    
+    /* 统计区域 */
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    
+    /* 错误提示 */
+    .error-message {
+      background: rgba(255, 87, 87, 0.1);
+      border: 1px solid rgba(255, 87, 87, 0.3);
+      color: #ff6b6b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 1400px) {
+      .container {
+        max-width: 97%;
+      }
+      
+      th, td {
+        padding: 10px 6px;
+        font-size: 0.85rem;
+      }
+    }
+    
+    @media (max-width: 1200px) {
+      .container {
+        max-width: 96%;
+      }
+      
+      .filters {
+        gap: 10px;
+      }
+      
+      select, button, input {
+        min-width: 100px;
+        font-size: 0.8rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 8px 10px;
+      }
+      
+      .container {
+        max-width: 100%;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      
+      .filter-group {
+        width: 100%;
+      }
+      
+      select, button, input {
+        width: 100%;
+      }
+      
+      #searchInput {
+        max-width: 100%;
+      }
+      
+      table {
+        font-size: 0.8rem;
+      }
+      
+      th, td {
+        padding: 8px 4px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -303,7 +361,7 @@ td:nth-child(11) { /* 日期列 */
       </div>
     </header>
     
-    <!-- 筛选器区域 - 确保所有ID与JavaScript匹配 -->
+    <!-- 筛选器区域 -->
     <div class="filters">
       <div class="filter-group">
         <label for="trackSelect">赛道：</label>
@@ -354,35 +412,50 @@ td:nth-child(11) { /* 日期列 */
         </select>
       </div>
       
+      <!-- 搜索框 -->
+      <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
+      
       <button id="resetFilters">重置筛选</button>
     </div>
     
-    <!-- 表格区域 -->
-    <table id="lapTable">
-      <thead>
-        <tr>
-          <th data-sort="rank">排名</th>
-          <th data-sort="car" class="sortable">车辆</th>
-          <th data-sort="track" class="sortable">赛道</th>
-          <th data-sort="layout" class="sortable hide-mobile">布局</th>
-          <th data-sort="time" class="sortable">圈速 ⏱</th>
-          <th data-sort="power" class="sortable">马力</th>
-          <th data-sort="drivetrain" class="sortable">驱动</th>
-          <th data-sort="power_type" class="sortable">动力</th>
-          <th data-sort="start_type" class="sortable hide-mobile">起步</th>
-          <th data-sort="control_type" class="sortable hide-mobile">控制</th>
-          <th data-sort="date" class="sortable">日期</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- 数据将由JavaScript动态生成 -->
-      </tbody>
-    </table>
+    <!-- 加载状态 -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>正在加载数据...
+    </div>
     
+    <!-- 错误提示区域 -->
+    <div id="errorContainer" style="display: none;"></div>
+    
+    <!-- 表格容器（支持横向滚动） -->
+    <div class="table-container">
+      <table id="lapTable">
+        <thead>
+          <tr>
+            <th data-sort="rank">排名</th>
+            <th data-sort="car" class="sortable">车辆</th>
+            <th data-sort="track" class="sortable">赛道</th>
+            <th data-sort="layout" class="sortable">布局</th>
+            <th data-sort="time" class="sortable">圈速 ⏱</th>
+            <th data-sort="power" class="sortable">马力</th>
+            <th data-sort="drivetrain" class="sortable">驱动</th>
+            <th data-sort="power_type" class="sortable">动力</th>
+            <th data-sort="start_type" class="sortable">起步</th>
+            <th data-sort="control_type" class="sortable">控制</th>
+            <th data-sort="date" class="sortable">日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 数据将由JavaScript动态生成 -->
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- 统计信息 -->
     <div class="stats">
       <div>总记录数：<span id="totalRecords">0</span></div>
       <div>最快圈速：<span id="fastestTime">--:--.--</span></div>
       <div>平均马力：<span id="avgPower">0</span> hp</div>
+      <div>搜索匹配：<span id="searchMatches">0</span> 条</div>
     </div>
   </div>
 
