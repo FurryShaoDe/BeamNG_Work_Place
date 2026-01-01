@@ -50,5 +50,18 @@
     "drivetrain": "前驱",
     "power": 173,
     "date": "2025-12-30"
+  },
+  {
+    "car": "ETK 800-Series 844 250(A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:10.980",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 251,
+    "date": "2026-1-1"
   }
 ]
