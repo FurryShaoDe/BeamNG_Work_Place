@@ -16,7 +16,7 @@ const elements = {
   tableBody: document.querySelector('#lapTable tbody'),
   totalRecords: document.getElementById('totalRecords'),
   fastestTime: document.getElementById('fastestTime'),
-  avgPower: document.getElementById('avgPower'),
+  driverName: document.getElementById('driverName'),
   searchMatches: document.getElementById('searchMatches'),
   updateTime: document.getElementById('updateTime')
 };
@@ -409,7 +409,7 @@ function renderTable(data) {
  */
 function updateStats(data) {
   if (!elements.totalRecords || !elements.fastestTime || 
-      !elements.avgPower || !elements.searchMatches) return;
+      !elements.driverName || !elements.searchMatches) return;  // ✅ 改这里
   
   elements.totalRecords.textContent = data.length;
   elements.searchMatches.textContent = data.length;
@@ -423,20 +423,11 @@ function updateStats(data) {
     
     elements.fastestTime.textContent = msToTime(fastest);
     
-    // 计算平均马力
-    const validPower = data
-      .filter(item => item.power && !isNaN(item.power))
-      .map(item => Number(item.power));
-    
-    if (validPower.length > 0) {
-      const avg = Math.round(validPower.reduce((a, b) => a + b, 0) / validPower.length);
-      elements.avgPower.textContent = avg;
-    } else {
-      elements.avgPower.textContent = '0';
-    }
+    // ✅ 设置车手名字为固定值"少德"
+    elements.driverName.textContent = '少德';
   } else {
     elements.fastestTime.textContent = '--:--.--';
-    elements.avgPower.textContent = '0';
+    elements.driverName.textContent = '少德';  // ✅ 即使没有数据也显示车手名字
   }
 }
 
