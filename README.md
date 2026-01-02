@@ -12,4 +12,5 @@
 在终端执行以下命令启动本地服务：
 ```bash
 python -m http.server
+```
 打开浏览器，输入地址 http://localhost:8000 即可查看 HTML 效果。
