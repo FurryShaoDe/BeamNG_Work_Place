@@ -455,6 +455,22 @@ function updateSortIndicator() {
 function initEventListeners() {
   console.log('初始化事件监听器...');
   
+  // 使用事件委托处理赛道标签点击
+  elements.trackTabs.addEventListener('click', (e) => {
+    // 找到被点击的赛道标签
+    const trackTab = e.target.closest('.track-tab');
+    if (!trackTab) return;
+    
+    if (!isDataLoaded) {
+      console.log('数据尚未加载，请稍候...');
+      return;
+    }
+    
+    const track = trackTab.dataset.track;
+    console.log('点击了赛道标签:', track);
+    switchTrack(track);
+  });
+  
   // 表头点击排序
   document.querySelectorAll('.sortable').forEach(header => {
     header.addEventListener('click', () => {

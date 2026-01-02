@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BeamNG赛车圈速榜</title>
+  <title>BeamNG赛车圈速榜 - 多赛道版</title>
   <style>
     * {
       box-sizing: border-box;
@@ -50,6 +50,84 @@
       color: #aaa;
       font-size: 0.85rem;
       margin-bottom: 15px;
+    }
+    
+    /* 赛道标签页 */
+    .track-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding: 0 5px;
+    }
+    
+    .track-tab {
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #aaa;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    
+    .track-tab:hover {
+      background: rgba(64, 224, 208, 0.1);
+      color: #40e0d0;
+    }
+    
+    .track-tab.active {
+      background: linear-gradient(90deg, #ff0080, #ff8c00);
+      color: white;
+      border-color: #ff8c00;
+      box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
+    }
+    
+    .track-tab .track-count {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      margin-left: 5px;
+    }
+    
+    /* 赛道内容区域 */
+    .track-content {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    .track-content.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 赛道标题 */
+    .track-header {
+      text-align: center;
+      margin-bottom: 25px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .track-name {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #ff8c00;
+      text-shadow: 0 2px 10px rgba(255, 140, 0, 0.3);
+    }
+    
+    .track-layouts {
+      color: #40e0d0;
+      font-size: 0.9rem;
     }
     
     /* 筛选器区域 */
@@ -154,7 +232,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
-      min-width: 1000px; /* 确保在移动端可以横向滚动 */
+      min-width: 1000px;
     }
     
     th {
@@ -214,17 +292,17 @@
       background: rgba(255, 255, 255, 0.01);
     }
     
-	/* 为前三名添加更醒目的效果 */
-	.rank-1 .time-cell {
-	  font-size: 1.2rem;
-	  color: gold !important;
-	  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-	}
-	
-	.rank-1 td {
-	  background: linear-gradient(90deg, rgba(255,215,0,0.1), transparent) !important;
-	}
-	
+    /* 为前三名添加更醒目的效果 */
+    .rank-1 .time-cell {
+      font-size: 1.2rem;
+      color: gold !important;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    
+    .rank-1 td {
+      background: linear-gradient(90deg, rgba(255,215,0,0.1), transparent) !important;
+    }
+    
     .rank-1 {
       background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
       border-left: 4px solid gold;
@@ -273,7 +351,7 @@
       color: #FF9800;
     }
     
-    /* 控制类型 - 绿色透明背景 */
+    /* 控制类型 */
     .control-type {
       padding: 4px 8px;
       border-radius: 4px;
@@ -309,33 +387,29 @@
       text-align: center;
     }
     
+    /* 赛道统计卡片 */
+    .track-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .track-stat-card {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    
+    .track-stat-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(255, 140, 0, 0.5);
+    }
+    
     /* 响应式调整 */
-    @media (max-width: 1400px) {
-      .container {
-        max-width: 97%;
-      }
-      
-      th, td {
-        padding: 10px 6px;
-        font-size: 0.85rem;
-      }
-    }
-    
-    @media (max-width: 1200px) {
-      .container {
-        max-width: 96%;
-      }
-      
-      .filters {
-        gap: 10px;
-      }
-      
-      select, button, input {
-        min-width: 100px;
-        font-size: 0.8rem;
-      }
-    }
-    
     @media (max-width: 768px) {
       body {
         padding: 8px 10px;
@@ -343,6 +417,16 @@
       
       .container {
         max-width: 100%;
+      }
+      
+      .track-tabs {
+        overflow-x: auto;
+        padding-bottom: 10px;
+      }
+      
+      .track-tab {
+        padding: 8px 15px;
+        font-size: 0.9rem;
       }
       
       .filters {
@@ -370,127 +454,711 @@
       th, td {
         padding: 8px 4px;
       }
+      
+      .track-stats-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>BEAMNG.DRIVE 圈速排行榜</h1>
+      <h1>BEAMNG.DRIVE 多赛道圈速榜</h1>
       <div class="game-info">
         数据更新时间：<span id="updateTime">2025-12-30</span>
+        | 车手：<span id="driverName">少德</span>
       </div>
     </header>
     
-    <!-- 筛选器区域 -->
-    <div class="filters">
-      <div class="filter-group">
-        <label for="trackSelect">赛道：</label>
-        <select id="trackSelect">
-          <option value="all">全部赛道</option>
-        </select>
+    <!-- 赛道标签页 -->
+    <div class="track-tabs" id="trackTabs">
+      <div class="track-tab active" data-track="all">
+        所有赛道 <span class="track-count" id="allCount">0</span>
       </div>
-      
-      <div class="filter-group">
-        <label for="carSelect">车辆：</label>
-        <select id="carSelect">
-          <option value="all">全部车辆</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label for="drivetrainSelect">驱动：</label>
-        <select id="drivetrainSelect">
-          <option value="all">全部驱动</option>
-          <option value="前驱">前驱</option>
-          <option value="后驱">后驱</option>
-          <option value="四驱">四驱</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label for="layoutSelect">布局：</label>
-        <select id="layoutSelect">
-          <option value="all">全部布局</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label for="startTypeSelect">起步：</label>
-        <select id="startTypeSelect">
-          <option value="all">全部起步</option>
-          <option value="静态起步">静态起步</option>
-          <option value="动态起步">动态起步</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label for="powerTypeSelect">动力：</label>
-        <select id="powerTypeSelect">
-          <option value="all">全部动力</option>
-          <option value="油车">油车</option>
-          <option value="电车">电车</option>
-        </select>
-      </div>
-      
-      <!-- 新增模组筛选器 -->
-      <div class="filter-group">
-        <label for="modSelect">模组：</label>
-        <select id="modSelect">
-          <option value="all">全部</option>
-          <option value="是">模组车辆</option>
-          <option value="否">原版车辆</option>
-        </select>
-      </div>
-      
-      <!-- 搜索框 -->
-      <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
-      
-      <button id="resetFilters">重置筛选</button>
+      <!-- 赛道标签将由JS动态生成 -->
     </div>
     
-    <!-- 加载状态 -->
-    <div id="loading" class="loading">
-      <div class="spinner"></div>正在加载数据...
+    <!-- 所有赛道总览页面 -->
+    <div id="allTracksContent" class="track-content active">
+      <div class="track-header">
+        <div class="track-name">🏆 综合排行榜</div>
+        <div class="track-layouts">查看所有赛道的综合排名</div>
+      </div>
+      
+      <!-- 筛选器区域（仅在所有赛道页面显示） -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="trackSelect">赛道：</label>
+          <select id="trackSelect">
+            <option value="all">全部赛道</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="carSelect">车辆：</label>
+          <select id="carSelect">
+            <option value="all">全部车辆</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="drivetrainSelect">驱动：</label>
+          <select id="drivetrainSelect">
+            <option value="all">全部驱动</option>
+            <option value="前驱">前驱</option>
+            <option value="后驱">后驱</option>
+            <option value="四驱">四驱</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="layoutSelect">布局：</label>
+          <select id="layoutSelect">
+            <option value="all">全部布局</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="startTypeSelect">起步：</label>
+          <select id="startTypeSelect">
+            <option value="all">全部起步</option>
+            <option value="静态起步">静态起步</option>
+            <option value="动态起步">动态起步</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="powerTypeSelect">动力：</label>
+          <select id="powerTypeSelect">
+            <option value="all">全部动力</option>
+            <option value="油车">油车</option>
+            <option value="电车">电车</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="modSelect">模组：</label>
+          <select id="modSelect">
+            <option value="all">全部</option>
+            <option value="是">模组车辆</option>
+            <option value="否">原版车辆</option>
+          </select>
+        </div>
+        
+        <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
+        <button id="resetFilters">重置筛选</button>
+      </div>
+      
+      <!-- 加载状态 -->
+      <div id="loading" class="loading">
+        <div class="spinner"></div>正在加载数据...
+      </div>
+      
+      <!-- 错误提示区域 -->
+      <div id="errorContainer" style="display: none;"></div>
+      
+      <!-- 所有赛道表格 -->
+      <div class="table-container">
+        <table id="allTracksTable">
+          <thead>
+            <tr>
+              <th data-sort="rank">排名</th>
+              <th data-sort="car" class="sortable">车辆</th>
+              <th data-sort="track" class="sortable">赛道</th>
+              <th data-sort="layout" class="sortable">布局</th>
+              <th data-sort="time" class="sortable">圈速 ⏱</th>
+              <th data-sort="power" class="sortable">马力</th>
+              <th data-sort="drivetrain" class="sortable">驱动</th>
+              <th data-sort="power_type" class="sortable">动力</th>
+              <th data-sort="start_type" class="sortable">起步</th>
+              <th data-sort="control_type" class="sortable">控制</th>
+              <th data-sort="mod" class="sortable">模组</th>
+              <th data-sort="date" class="sortable">日期</th>
+            </tr>
+          </thead>
+          <tbody id="allTracksTableBody">
+            <!-- 数据将由JavaScript动态生成 -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- 赛道统计卡片 -->
+      <div class="track-header" style="margin-top: 30px;">
+        <div class="track-name">📊 各赛道统计</div>
+        <div class="track-layouts">点击卡片查看详细排名</div>
+      </div>
+      
+      <div class="track-stats-grid" id="trackStatsGrid">
+        <!-- 赛道统计卡片将由JS动态生成 -->
+      </div>
     </div>
     
-    <!-- 错误提示区域 -->
-    <div id="errorContainer" style="display: none;"></div>
-    
-    <!-- 表格容器（支持横向滚动） -->
-    <div class="table-container">
-      <table id="lapTable">
-        <thead>
-          <tr>
-            <th data-sort="rank">排名</th>
-            <th data-sort="car" class="sortable">车辆</th>
-            <th data-sort="track" class="sortable">赛道</th>
-            <th data-sort="layout" class="sortable">布局</th>
-            <th data-sort="time" class="sortable">圈速 ⏱</th>
-            <th data-sort="power" class="sortable">马力</th>
-            <th data-sort="drivetrain" class="sortable">驱动</th>
-            <th data-sort="power_type" class="sortable">动力</th>
-            <th data-sort="start_type" class="sortable">起步</th>
-            <th data-sort="control_type" class="sortable">控制</th>
-            <th data-sort="mod" class="sortable">模组</th> <!-- 新增模组列 -->
-            <th data-sort="date" class="sortable">日期</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- 数据将由JavaScript动态生成 -->
-        </tbody>
-      </table>
-    </div>
+    <!-- 各个赛道独立页面将由JS动态生成 -->
     
     <!-- 统计信息 -->
     <div class="stats">
-      <div>总记录数：<span id="totalRecords">0</span></div>
+      <div>当前记录数：<span id="currentRecords">0</span></div>
       <div>最快圈速：<span id="fastestTime">--:--.--</span></div>
-      <div>车手：<span id="driverName">少德</span></div>
-      <div>搜索匹配：<span id="searchMatches">0</span> 条</div>
+      <div>赛道：<span id="currentTrack">所有赛道</span></div>
+      <div>车手：<span id="driverNameStat">少德</span></div>
     </div>
   </div>
 
-  <script src="main.js"></script>
+  <script>
+    // ==================== 全局状态 ====================
+    let lapData = [];
+    let isDataLoaded = false;
+    let currentTrack = 'all';
+    let trackDataMap = {};
+    
+    // ==================== DOM元素引用 ====================
+    const elements = {
+      trackTabs: document.getElementById('trackTabs'),
+      allTracksContent: document.getElementById('allTracksContent'),
+      allTracksTableBody: document.getElementById('allTracksTableBody'),
+      trackStatsGrid: document.getElementById('trackStatsGrid'),
+      loading: document.getElementById('loading'),
+      errorContainer: document.getElementById('errorContainer'),
+      searchInput: document.getElementById('searchInput'),
+      currentRecords: document.getElementById('currentRecords'),
+      fastestTime: document.getElementById('fastestTime'),
+      currentTrack: document.getElementById('currentTrack'),
+      driverNameStat: document.getElementById('driverNameStat'),
+      updateTime: document.getElementById('updateTime'),
+      driverName: document.getElementById('driverName')
+    };
+    
+    // ==================== 工具函数 ====================
+    
+    function showLoading() {
+      if (elements.loading) {
+        elements.loading.classList.add('active');
+      }
+    }
+    
+    function hideLoading() {
+      if (elements.loading) {
+        elements.loading.classList.remove('active');
+      }
+    }
+    
+    function showError(message) {
+      if (!elements.errorContainer) return;
+      elements.errorContainer.innerHTML = `
+        <div class="error-message">
+          <strong>⚠️ 错误：</strong> ${message}
+        </div>
+      `;
+      elements.errorContainer.style.display = 'block';
+    }
+    
+    function clearError() {
+      if (elements.errorContainer) {
+        elements.errorContainer.style.display = 'none';
+        elements.errorContainer.innerHTML = '';
+      }
+    }
+    
+    function timeToMs(timeStr) {
+      if (!timeStr || timeStr === '--:--.--' || timeStr === '') {
+        return Infinity;
+      }
+      
+      try {
+        const parts = timeStr.split(/[:.]/);
+        if (parts.length >= 2) {
+          const minutes = parseInt(parts[0]) || 0;
+          const seconds = parseInt(parts[1]) || 0;
+          let milliseconds = 0;
+          
+          if (parts.length >= 3) {
+            const msStr = parts[2].padEnd(3, '0').slice(0, 3);
+            milliseconds = parseInt(msStr) || 0;
+          }
+          
+          return minutes * 60000 + seconds * 1000 + milliseconds;
+        }
+        return Infinity;
+      } catch (e) {
+        return Infinity;
+      }
+    }
+    
+    function msToTime(ms) {
+      if (ms === Infinity || isNaN(ms) || ms === null) {
+        return '--:--.--';
+      }
+      
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      const milliseconds = Math.floor(ms % 1000);
+      
+      return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+    }
+    
+    function getDrivetrainClass(drivetrain) {
+      if (!drivetrain) return '';
+      if (drivetrain.includes('前驱')) return 'drivetrain-fwd';
+      if (drivetrain.includes('后驱')) return 'drivetrain-rwd';
+      if (drivetrain.includes('四驱')) return 'drivetrain-awd';
+      return '';
+    }
+    
+    function getPowerTypeIcon(powerType) {
+      return powerType === '电车' ? '⚡' : '⛽';
+    }
+    
+    function getStartTypeIcon(startType) {
+      return startType === '静态起步' ? '🛑' : '🚦';
+    }
+    
+    // ==================== 数据处理 ====================
+    
+    function loadData() {
+      console.log('开始加载数据...');
+      showLoading();
+      clearError();
+      
+      fetch('data.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP错误 ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('数据加载成功，记录数:', data.length);
+          
+          if (!Array.isArray(data)) {
+            throw new Error('数据格式错误：应为数组');
+          }
+          
+          lapData = data;
+          isDataLoaded = true;
+          
+          // 处理赛道数据
+          processTrackData();
+          
+          // 设置更新时间
+          if (data.length > 0 && elements.updateTime) {
+            const latestDate = data.reduce((latest, item) => {
+              return item.date > latest ? item.date : latest;
+            }, data[0].date);
+            elements.updateTime.textContent = latestDate;
+          }
+          
+          hideLoading();
+          console.log('数据初始化完成');
+        })
+        .catch(error => {
+          console.error('数据加载失败:', error);
+          showError(`数据加载失败: ${error.message}`);
+          hideLoading();
+        });
+    }
+    
+    function processTrackData() {
+      // 1. 按赛道分组数据
+      trackDataMap = {};
+      
+      lapData.forEach(item => {
+        if (!item.track) return;
+        
+        if (!trackDataMap[item.track]) {
+          trackDataMap[item.track] = [];
+        }
+        trackDataMap[item.track].push(item);
+      });
+      
+      // 2. 生成赛道标签页
+      generateTrackTabs();
+      
+      // 3. 生成各赛道页面
+      generateTrackPages();
+      
+      // 4. 生成赛道统计卡片
+      generateTrackStats();
+      
+      // 5. 初始化"所有赛道"表格
+      renderAllTracksTable();
+      
+      // 6. 填充筛选器选项
+      populateFilters();
+      
+      // 7. 更新统计信息
+      updateCurrentStats();
+    }
+    
+    function generateTrackTabs() {
+  // 取出“所有赛道”tab（HTML里原本就有）
+  const allTab = document.querySelector('.track-tab[data-track="all"]');
+
+  // 清空 tabs 容器
+  elements.trackTabs.innerHTML = '';
+
+  // 放回“所有赛道”
+  elements.trackTabs.appendChild(allTab);
+
+  // 为每个赛道创建 tab
+  Object.keys(trackDataMap).forEach(track => {
+    const count = trackDataMap[track].length;
+
+    const tab = document.createElement('div');
+    tab.className = 'track-tab';
+    tab.dataset.track = track;
+    tab.innerHTML = `${track} <span class="track-count">${count}</span>`;
+
+    elements.trackTabs.appendChild(tab);
+  });
+
+  // 更新“所有赛道”数量
+  const allCount = document.querySelector(
+    '.track-tab[data-track="all"] .track-count'
+  );
+  if (allCount) {
+    allCount.textContent = lapData.length;
+  }
+}
+
+    
+    function generateTrackPages() {
+      const container = document.querySelector('.container');
+      
+      Object.keys(trackDataMap).forEach(track => {
+        const trackId = track.replace(/\s+/g, '-');
+        const data = trackDataMap[track];
+        
+        // 检查是否已存在
+        if (document.getElementById(`${trackId}Content`)) return;
+        
+        // 收集该赛道的布局
+        const layouts = [...new Set(data.map(item => item.layout))].filter(l => l);
+        
+        // 创建赛道页面
+        const content = document.createElement('div');
+        content.id = `${trackId}Content`;
+        content.className = 'track-content';
+        
+        content.innerHTML = `
+          <div class="track-header">
+            <div class="track-name">${track}</div>
+            <div class="track-layouts">
+              可用布局：${layouts.join(' • ')}
+            </div>
+            <div style="margin-top: 10px; color: #aaa; font-size: 0.9rem;">
+              ${data.length} 条记录 | 最快圈速：${getFastestTime(data)}
+            </div>
+          </div>
+          
+          <div class="table-container">
+            <table class="track-table">
+              <thead>
+                <tr>
+                  <th>排名</th>
+                  <th>车辆</th>
+                  <th>布局</th>
+                  <th>圈速 ⏱</th>
+                  <th>马力</th>
+                  <th>驱动</th>
+                  <th>动力</th>
+                  <th>起步</th>
+                  <th>控制</th>
+                  <th>模组</th>
+                  <th>日期</th>
+                </tr>
+              </thead>
+              <tbody id="${trackId}TableBody">
+                <!-- 将由JavaScript填充 -->
+              </tbody>
+            </table>
+          </div>
+        `;
+        
+        // 插入到统计信息之前
+        const statsElement = document.querySelector('.stats');
+        container.insertBefore(content, statsElement);
+        
+        // 渲染该赛道的表格
+        renderTrackTable(track, data);
+      });
+    }
+    
+    function generateTrackStats() {
+      elements.trackStatsGrid.innerHTML = '';
+      
+      Object.keys(trackDataMap).forEach(track => {
+        const data = trackDataMap[track];
+        const fastest = getFastestRecord(data);
+        const carCount = new Set(data.map(item => item.car)).size;
+        const layouts = new Set(data.map(item => item.layout)).size;
+        
+        const card = document.createElement('div');
+        card.className = 'track-stat-card';
+        
+        card.innerHTML = `
+          <div style="font-weight: bold; color: #40e0d0; margin-bottom: 10px;">${track}</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #aaa;">记录数：</span>
+            <span style="color: white;">${data.length}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #aaa;">车辆数：</span>
+            <span style="color: white;">${carCount}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #aaa;">布局数：</span>
+            <span style="color: white;">${layouts}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #aaa;">最快圈速：</span>
+            <span style="color: #ff8c00; font-weight: bold;">${getFastestTime(data)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #aaa;">最快车辆：</span>
+            <span style="color: #ff8c00; font-size: 0.9rem;">${fastest?.car || '--'}</span>
+          </div>
+        `;
+        
+        card.addEventListener('click', () => {
+          switchTrack(track);
+        });
+        
+        elements.trackStatsGrid.appendChild(card);
+      });
+    }
+    
+    function renderAllTracksTable() {
+      const tbody = elements.allTracksTableBody;
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      if (lapData.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="12" style="text-align: center; padding: 40px;">
+              没有找到记录
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      // 按时间排序
+      const sortedData = [...lapData].sort((a, b) => {
+        return timeToMs(a.time) - timeToMs(b.time);
+      });
+      
+      sortedData.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        
+        if (index < 3) {
+          tr.className = `rank-${index + 1}`;
+        }
+        
+        const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
+        const drivetrainClass = getDrivetrainClass(item.drivetrain);
+        
+        tr.innerHTML = `
+          <td><strong>${index + 1}</strong></td>
+          <td class="car-cell">${item.car || '未知车辆'}</td>
+          <td>${item.track || '未知赛道'}</td>
+          <td>${item.layout || '--'}</td>
+          <td class="time-cell">${item.time || '--:--.--'}</td>
+          <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+          <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
+          <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
+          <td>${getStartTypeIcon(item.start_type || '')} ${item.start_type || '--'}</td>
+          <td><span class="control-type">${item.control_type || '--'}</span></td>
+          <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
+          <td>${item.date || '--'}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function renderTrackTable(track, data) {
+      const trackId = track.replace(/\s+/g, '-');
+      const tbody = document.getElementById(`${trackId}TableBody`);
+      
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      // 按时间排序
+      const sortedData = [...data].sort((a, b) => {
+        return timeToMs(a.time) - timeToMs(b.time);
+      });
+      
+      sortedData.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        
+        if (index < 3) {
+          tr.className = `rank-${index + 1}`;
+        }
+        
+        const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
+        const drivetrainClass = getDrivetrainClass(item.drivetrain);
+        
+        tr.innerHTML = `
+          <td><strong>${index + 1}</strong></td>
+          <td class="car-cell">${item.car || '未知车辆'}</td>
+          <td>${item.layout || '--'}</td>
+          <td class="time-cell">${item.time || '--:--.--'}</td>
+          <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+          <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
+          <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
+          <td>${getStartTypeIcon(item.start_type || '')} ${item.start_type || '--'}</td>
+          <td><span class="control-type">${item.control_type || '--'}</span></td>
+          <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
+          <td>${item.date || '--'}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function populateFilters() {
+      const uniqueValues = {
+        tracks: new Set(),
+        cars: new Set(),
+        layouts: new Set()
+      };
+      
+      lapData.forEach(item => {
+        if (item.track) uniqueValues.tracks.add(item.track);
+        if (item.car) uniqueValues.cars.add(item.car);
+        if (item.layout) uniqueValues.layouts.add(item.layout);
+      });
+      
+      // 填充赛道选项
+      const trackSelect = document.getElementById('trackSelect');
+      if (trackSelect) {
+        [...uniqueValues.tracks].sort().forEach(track => {
+          const option = document.createElement('option');
+          option.value = track;
+          option.textContent = track;
+          trackSelect.appendChild(option);
+        });
+      }
+      
+      // 填充车辆选项
+      const carSelect = document.getElementById('carSelect');
+      if (carSelect) {
+        [...uniqueValues.cars].sort().forEach(car => {
+          const option = document.createElement('option');
+          option.value = car;
+          option.textContent = car;
+          carSelect.appendChild(option);
+        });
+      }
+      
+      // 填充布局选项
+      const layoutSelect = document.getElementById('layoutSelect');
+      if (layoutSelect) {
+        [...uniqueValues.layouts].sort().forEach(layout => {
+          const option = document.createElement('option');
+          option.value = layout;
+          option.textContent = layout;
+          layoutSelect.appendChild(option);
+        });
+      }
+    }
+    
+    function getFastestTime(data) {
+      if (!data || data.length === 0) return '--:--.--';
+      
+      const fastest = data.reduce((min, item) => {
+        const timeMs = timeToMs(item.time);
+        return timeMs < min.timeMs ? { time: item.time, timeMs } : min;
+      }, { time: null, timeMs: Infinity });
+      
+      return fastest.time || '--:--.--';
+    }
+    
+    function getFastestRecord(data) {
+      if (!data || data.length === 0) return null;
+      
+      return data.reduce((min, item) => {
+        const timeMs = timeToMs(item.time);
+        return timeMs < min.timeMs ? { ...item, timeMs } : min;
+      }, { timeMs: Infinity });
+    }
+    
+    // ==================== 页面切换 ====================
+    
+    function switchTrack(track) {
+      // 更新活动标签
+      document.querySelectorAll('.track-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`.track-tab[data-track="${track}"]`).classList.add('active');
+      
+      // 更新活动内容
+      document.querySelectorAll('.track-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      const contentId = track === 'all' ? 'allTracksContent' : `${track.replace(/\s+/g, '-')}Content`;
+      document.getElementById(contentId).classList.add('active');
+      
+      // 更新当前赛道状态
+      currentTrack = track;
+      elements.currentTrack.textContent = track === 'all' ? '所有赛道' : track;
+      
+      // 更新统计信息
+      updateCurrentStats();
+    }
+    
+    function updateCurrentStats() {
+      let currentData;
+      
+      if (currentTrack === 'all') {
+        currentData = lapData;
+      } else {
+        currentData = trackDataMap[currentTrack] || [];
+      }
+      
+      elements.currentRecords.textContent = currentData.length;
+      
+      // 计算最快圈速
+      if (currentData.length > 0) {
+        const fastest = currentData.reduce((min, item) => {
+          const ms = timeToMs(item.time);
+          return ms < min ? ms : min;
+        }, Infinity);
+        
+        elements.fastestTime.textContent = msToTime(fastest);
+      } else {
+        elements.fastestTime.textContent = '--:--.--';
+      }
+    }
+    
+    // ==================== 初始化 ====================
+    
+    function initApp() {
+      console.log('初始化多赛道应用...');
+      loadData();
+    }
+    
+    // 页面加载完成后初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+	elements.trackTabs.addEventListener('click', e => {
+  // 找到最近的 track-tab（防止点到 span）
+  const tab = e.target.closest('.track-tab');
+  if (!tab) return;
+
+  const track = tab.dataset.track;
+  if (!track) return;
+
+  switchTrack(track);
+});
+  </script>
 </body>
 </html>
