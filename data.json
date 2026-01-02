@@ -12,5 +12,47 @@
     "power": 284,
     "date": "2025-1-2",
     "mod": "否"
+  },
+  {
+    "car": "Bruckell Bastion Sport GT 6 (A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:07.395",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 488,
+    "date": "2025-1-2",
+    "mod": "否"
+  },
+  {
+    "car": "Bruckell Bastion Street Tuned (A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:06.565",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 657,
+    "date": "2025-1-2",
+    "mod": "否"
+  },
+  {
+    "car": "Bruckell Bastion Hotlap Special (M)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:01.894",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 613,
+    "date": "2025-1-2",
+    "mod": "否"
   }
 ]
