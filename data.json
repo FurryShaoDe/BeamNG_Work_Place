@@ -68,5 +68,19 @@
     "power": 162,
     "date": "2025-1-2",
     "mod": "否"
+  },
+  {
+    "car": "Hirochi Sunburst 2.5 Comfort Wagon AWD (CVT)",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "08:53.600",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "四驱",
+    "power": 168,
+    "date": "2025-1-2",
+    "mod": "否"
   }
 ]
