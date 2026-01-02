@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏁 BeamNG赛车圈速榜</title>
+  <title>BeamNG赛车圈速榜</title>
   <style>
     * {
       box-sizing: border-box;
@@ -252,6 +252,16 @@
     .drivetrain-rwd { color: #2196F3; }
     .drivetrain-awd { color: #FF9800; }
     
+    /* 模组列样式 */
+    .mod-cell-yes {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    
+    .mod-cell-no {
+      color: #FF9800;
+    }
+    
     /* 控制类型 - 绿色透明背景 */
     .control-type {
       padding: 4px 8px;
@@ -412,6 +422,16 @@
         </select>
       </div>
       
+      <!-- 新增模组筛选器 -->
+      <div class="filter-group">
+        <label for="modSelect">模组：</label>
+        <select id="modSelect">
+          <option value="all">全部</option>
+          <option value="是">模组车辆</option>
+          <option value="否">原版车辆</option>
+        </select>
+      </div>
+      
       <!-- 搜索框 -->
       <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
       
@@ -441,6 +461,7 @@
             <th data-sort="power_type" class="sortable">动力</th>
             <th data-sort="start_type" class="sortable">起步</th>
             <th data-sort="control_type" class="sortable">控制</th>
+            <th data-sort="mod" class="sortable">模组</th> <!-- 新增模组列 -->
             <th data-sort="date" class="sortable">日期</th>
           </tr>
         </thead>

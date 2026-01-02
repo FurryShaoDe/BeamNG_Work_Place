@@ -24,7 +24,7 @@ const elements = {
 // 筛选器元素
 const filterElements = [
   'trackSelect', 'carSelect', 'drivetrainSelect',
-  'layoutSelect', 'startTypeSelect', 'powerTypeSelect'
+  'layoutSelect', 'startTypeSelect', 'powerTypeSelect', 'modSelect' // 新增modSelect
 ];
 
 // ==================== 工具函数 ====================
@@ -285,6 +285,7 @@ function applyFilters() {
     layout: document.getElementById('layoutSelect')?.value || 'all',
     startType: document.getElementById('startTypeSelect')?.value || 'all',
     powerType: document.getElementById('powerTypeSelect')?.value || 'all',
+    mod: document.getElementById('modSelect')?.value || 'all', // 新增模组筛选
     search: (elements.searchInput?.value || '').toLowerCase().trim()
   };
   
@@ -320,6 +321,11 @@ function applyFilters() {
       return false;
     }
     
+    // 模组筛选 - 新增
+    if (filters.mod !== 'all' && item.mod !== filters.mod) {
+      return false;
+    }
+    
     // 搜索筛选（模糊搜索车辆和赛道）
     if (filters.search) {
       const carMatch = item.car && item.car.toLowerCase().includes(filters.search);
@@ -351,7 +357,7 @@ function renderTable(data) {
   if (data.length === 0) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td colspan="11" style="text-align: center; padding: 40px;">
+      <td colspan="12" style="text-align: center; padding: 40px;">
         没有找到匹配的记录
       </td>
     `;
@@ -367,6 +373,9 @@ function renderTable(data) {
       tr.className = `rank-${index + 1}`;
     }
     
+    // 根据模组状态添加CSS类
+    const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
+    
     tr.innerHTML = `
       <td><strong>${index + 1}</strong></td>
       <td class="car-cell">${item.car || '未知车辆'}</td>
@@ -378,6 +387,7 @@ function renderTable(data) {
       <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
       <td>${getStartTypeIcon(item.start_type || '')} ${item.start_type || '--'}</td>
       <td><span class="control-type">${item.control_type || '--'}</span></td>
+      <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td> <!-- 新增模组列 -->
       <td>${item.date || '--'}</td>
     `;
     
