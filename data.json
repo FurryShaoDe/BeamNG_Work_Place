@@ -82,5 +82,47 @@
     "power": 168,
     "date": "2025-1-2",
     "mod": "否"
+  },
+  {
+    "car": "Hirochi SBR4 eSBR 800",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "07:12.001",
+    "start_type": "动态起步",
+    "power_type": "电车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "四驱",
+    "power": 807,
+    "date": "2025-1-2",
+    "mod": "否"
+  },
+  {
+    "car": "Hirochi SBR4 Hillclimb-Asphalt (DCT)",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "06:17.243",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "四驱",
+    "power": 811,
+    "date": "2025-1-2",
+    "mod": "否"
+  },
+  {
+    "car": "ETK 800-Series 854 190 (A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:11.573",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 193,
+    "date": "2025-1-2",
+    "mod": "否"
   }
 ]
