@@ -124,5 +124,61 @@
     "power": 193,
     "date": "2026-1-2",
     "mod": "否"
+  },
+  {
+    "car": "Hirochi SBR4 RWD TT S (DCT)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:06.461",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 350,
+    "date": "2026-1-3",
+    "mod": "否"
+  },
+  {
+    "car": "Ibishu Covet Track (M)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:02.461",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 327,
+    "date": "2026-1-3",
+    "mod": "否"
+  },
+  {
+    "car": "Cherrier FCV Vivace Race (Sequential)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "00:59.395",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 331,
+    "date": "2026-1-3",
+    "mod": "否"
+  },
+  {
+    "car": "Hirochi SBR4 Hillclimb-Asphalt (DCT)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "00:56.608",
+    "start_type": "动态起步",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "四驱",
+    "power": 811,
+    "date": "2026-1-3",
+    "mod": "否"
   }
 ]
