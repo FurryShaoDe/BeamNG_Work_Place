@@ -14,9 +14,7 @@ const elements = {
   errorContainer: document.getElementById('errorContainer'),
   searchInput: document.getElementById('searchInput'),
   currentRecords: document.getElementById('currentRecords'),
-  driverNameStat: document.getElementById('driverNameStat'),
   updateTime: document.getElementById('updateTime'),
-  driverName: document.getElementById('driverName')
 };
 
 // ==================== 工具函数 ====================
