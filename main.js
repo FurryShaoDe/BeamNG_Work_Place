@@ -14,8 +14,6 @@ const elements = {
   errorContainer: document.getElementById('errorContainer'),
   searchInput: document.getElementById('searchInput'),
   currentRecords: document.getElementById('currentRecords'),
-  fastestTime: document.getElementById('fastestTime'),
-  currentTrack: document.getElementById('currentTrack'),
   driverNameStat: document.getElementById('driverNameStat'),
   updateTime: document.getElementById('updateTime'),
   driverName: document.getElementById('driverName')
@@ -99,10 +97,6 @@ function getDrivetrainClass(drivetrain) {
 
 function getPowerTypeIcon(powerType) {
   return powerType === '电车' ? '⚡' : '⛽';
-}
-
-function getStartTypeIcon(startType) {
-  return startType === '静态起步' ? '🛑' : '🚦';
 }
 
 // ==================== 数据处理 ====================
@@ -253,7 +247,6 @@ function generateTrackPages() {
               <th>马力</th>
               <th>驱动</th>
               <th>动力</th>
-              <th>起步</th>
               <th>控制</th>
               <th>模组</th>
               <th>日期</th>
@@ -351,19 +344,18 @@ function renderAllTracksTable() {
     const drivetrainClass = getDrivetrainClass(item.drivetrain);
     
     tr.innerHTML = `
-      <td><strong>${index + 1}</strong></td>
-      <td class="car-cell">${item.car || '未知车辆'}</td>
-      <td>${item.track || '未知赛道'}</td>
-      <td>${item.layout || '--'}</td>
-      <td class="time-cell">${item.time || '--:--.--'}</td>
-      <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
-      <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
-      <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
-      <td>${getStartTypeIcon(item.start_type || '')} ${item.start_type || '--'}</td>
-      <td><span class="control-type">${item.control_type || '--'}</span></td>
-      <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
-      <td>${item.date || '--'}</td>
-    `;
+	  <td><strong>${index + 1}</strong></td>
+	  <td class="car-cell">${item.car || '未知车辆'}</td>
+	  <td>${item.track || '未知赛道'}</td>
+	  <td>${item.layout || '--'}</td>
+	  <td class="time-cell">${item.time || '--:--.--'}</td>
+	  <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+	  <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
+	  <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
+	  <td><span class="control-type">${item.control_type || '--'}</span></td>
+	  <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
+	  <td>${item.date || '--'}</td>
+	`;
     
     tbody.appendChild(tr);
   });
@@ -393,18 +385,17 @@ function renderTrackTable(track, data) {
     const drivetrainClass = getDrivetrainClass(item.drivetrain);
     
     tr.innerHTML = `
-      <td><strong>${index + 1}</strong></td>
-      <td class="car-cell">${item.car || '未知车辆'}</td>
-      <td>${item.layout || '--'}</td>
-      <td class="time-cell">${item.time || '--:--.--'}</td>
-      <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
-      <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
-      <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
-      <td>${getStartTypeIcon(item.start_type || '')} ${item.start_type || '--'}</td>
-      <td><span class="control-type">${item.control_type || '--'}</span></td>
-      <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
-      <td>${item.date || '--'}</td>
-    `;
+	  <td><strong>${index + 1}</strong></td>
+	  <td class="car-cell">${item.car || '未知车辆'}</td>
+	  <td>${item.layout || '--'}</td>
+	  <td class="time-cell">${item.time || '--:--.--'}</td>
+	  <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+	  <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
+	  <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
+	  <td><span class="control-type">${item.control_type || '--'}</span></td>
+	  <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
+	  <td>${item.date || '--'}</td>
+	`;
     
     tbody.appendChild(tr);
   });
@@ -486,7 +477,7 @@ function switchTrack(track) {
   });
   const activeTab = document.querySelector(`.track-tab[data-track="${track}"]`);
   if (activeTab) {
-      activeTab.classList.add('active');
+    activeTab.classList.add('active');
   }
   
   // 更新活动内容
@@ -497,14 +488,11 @@ function switchTrack(track) {
   const contentId = track === 'all' ? 'allTracksContent' : `${track.replace(/\s+/g, '-')}Content`;
   const contentEl = document.getElementById(contentId);
   if (contentEl) {
-      contentEl.classList.add('active');
+    contentEl.classList.add('active');
   }
   
   // 更新当前赛道状态
   currentTrack = track;
-  if (elements.currentTrack) {
-      elements.currentTrack.textContent = track === 'all' ? '所有赛道' : track;
-  }
   
   // 更新统计信息
   updateCurrentStats();
@@ -519,19 +507,8 @@ function updateCurrentStats() {
     currentData = trackDataMap[currentTrack] || [];
   }
   
+  // 只更新记录数，最快圈速信息已合并到静态文本中
   elements.currentRecords.textContent = currentData.length;
-  
-  // 计算最快圈速
-  if (currentData.length > 0) {
-    const fastest = currentData.reduce((min, item) => {
-      const ms = timeToMs(item.time);
-      return ms < min ? ms : min;
-    }, Infinity);
-    
-    elements.fastestTime.textContent = msToTime(fastest);
-  } else {
-    elements.fastestTime.textContent = '--:--.--';
-  }
 }
 
 // ==================== 初始化 ====================

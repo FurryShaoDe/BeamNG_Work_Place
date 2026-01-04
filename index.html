@@ -516,15 +516,6 @@
         </div>
         
         <div class="filter-group">
-          <label for="startTypeSelect">起步：</label>
-          <select id="startTypeSelect">
-            <option value="all">全部起步</option>
-            <option value="静态起步">静态起步</option>
-            <option value="动态起步">动态起步</option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
           <label for="powerTypeSelect">动力：</label>
           <select id="powerTypeSelect">
             <option value="all">全部动力</option>
@@ -564,7 +555,6 @@
               <th data-sort="power" class="sortable">马力</th>
               <th data-sort="drivetrain" class="sortable">驱动</th>
               <th data-sort="power_type" class="sortable">动力</th>
-              <th data-sort="start_type" class="sortable">起步</th>
               <th data-sort="control_type" class="sortable">控制</th>
               <th data-sort="mod" class="sortable">模组</th>
               <th data-sort="date" class="sortable">日期</th>
@@ -585,11 +575,10 @@
     </div>
     
     <div class="stats">
-      <div>当前记录数：<span id="currentRecords">0</span></div>
-      <div>最快圈速：<span id="fastestTime">--:--.--</span></div>
-      <div>赛道：<span id="currentTrack">所有赛道</span></div>
-      <div>车手：<span id="driverNameStat">少德</span></div>
-    </div>
+	  <div>当前记录数：<span id="currentRecords">0</span></div>
+	  <div>所有赛道记录均为计时赛模式的动态起步</div>
+	  <div>车手：<span id="driverNameStat">少德</span></div>
+	</div>
   </div>
 
   <script src="main.js"></script>
