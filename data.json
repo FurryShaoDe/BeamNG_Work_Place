@@ -206,5 +206,18 @@
     "power": 447,
     "date": "2026-1-5",
     "mod": "否"
+  },
+  {
+    "car": "Ibishu BX-Series 200BX GTz Turbo (M)",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "08:23.617",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "后驱",
+    "power": 215,
+    "date": "2026-1-5",
+    "mod": "否"
   }
 ]
