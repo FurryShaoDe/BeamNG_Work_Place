@@ -219,5 +219,18 @@
     "power": 215,
     "date": "2026-1-5",
     "mod": "否"
+  },
+  {
+    "car": "Cherrier FCV Vivace E",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "08:58.877",
+    "power_type": "电车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 196,
+    "date": "2026-1-11",
+    "mod": "否"
   }
 ]
