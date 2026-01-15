@@ -245,5 +245,18 @@
     "power": 127,
     "date": "2026-1-15",
     "mod": "否"
+  },
+  {
+    "car": "Soliad Lansdale 3.8 Sport SE AWD (A)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:19.802",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "四驱",
+    "power": 230,
+    "date": "2026-1-15",
+    "mod": "否"
   }
 ]
