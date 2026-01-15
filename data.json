@@ -232,5 +232,18 @@
     "power": 196,
     "date": "2026-1-11",
     "mod": "否"
+  },
+  {
+    "car": "Ibishu Covet 15ZXi (M)",
+    "track": "Hirochi赛车场",
+    "layout": "短途竞速环道",
+    "time": "01:16.210",
+    "power_type": "油车",
+    "game_version": "0.38.3",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 127,
+    "date": "2026-1-15",
+    "mod": "否"
   }
 ]
