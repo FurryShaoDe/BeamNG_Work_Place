@@ -1,88 +1,95 @@
 // ==================== 全局状态 ====================
-let lapData = [];
-let isDataLoaded = false;
-let currentTrack = 'all';
-let trackDataMap = {};
+const state = {
+  lapData: [],            // 原始数据
+  trackDataMap: {},       // 按赛道分组的数据
+  currentTrack: 'all',    // 当前选中的赛道
+  isDataLoaded: false,
+  // 排序状态
+  sort: {
+    column: 'time',       // 默认按圈速排序
+    direction: 'asc',     // 升序（圈速越小越快）
+  },
+  // 筛选状态
+  filters: {
+    track: 'all',
+    car: 'all',
+    drivetrain: 'all',
+    layout: 'all',
+    powerType: 'all',
+    mod: 'all',
+    search: '',
+  },
+};
 
-// ==================== DOM元素引用 ====================
-const elements = {
+// ==================== DOM 元素引用 ====================
+const el = {
   trackTabs: document.getElementById('trackTabs'),
   allTracksContent: document.getElementById('allTracksContent'),
   allTracksTableBody: document.getElementById('allTracksTableBody'),
+  allTracksTable: document.getElementById('allTracksTable'),
   trackStatsGrid: document.getElementById('trackStatsGrid'),
   loading: document.getElementById('loading'),
   errorContainer: document.getElementById('errorContainer'),
   searchInput: document.getElementById('searchInput'),
   currentRecords: document.getElementById('currentRecords'),
   updateTime: document.getElementById('updateTime'),
+  // 筛选器
+  trackSelect: document.getElementById('trackSelect'),
+  carSelect: document.getElementById('carSelect'),
+  drivetrainSelect: document.getElementById('drivetrainSelect'),
+  layoutSelect: document.getElementById('layoutSelect'),
+  powerTypeSelect: document.getElementById('powerTypeSelect'),
+  modSelect: document.getElementById('modSelect'),
+  resetFilters: document.getElementById('resetFilters'),
 };
 
 // ==================== 工具函数 ====================
 
 function showLoading() {
-  if (elements.loading) {
-    elements.loading.classList.add('active');
-  }
+  el.loading && el.loading.classList.add('active');
 }
 
 function hideLoading() {
-  if (elements.loading) {
-    elements.loading.classList.remove('active');
-  }
+  el.loading && el.loading.classList.remove('active');
 }
 
 function showError(message) {
-  if (!elements.errorContainer) return;
-  elements.errorContainer.innerHTML = `
+  if (!el.errorContainer) return;
+  el.errorContainer.innerHTML = `
     <div class="error-message">
-      <strong>⚠️ 错误：</strong> ${message}
+      <strong>错误：</strong> ${message}
     </div>
   `;
-  elements.errorContainer.style.display = 'block';
+  el.errorContainer.style.display = 'block';
 }
 
 function clearError() {
-  if (elements.errorContainer) {
-    elements.errorContainer.style.display = 'none';
-    elements.errorContainer.innerHTML = '';
-  }
+  if (!el.errorContainer) return;
+  el.errorContainer.style.display = 'none';
+  el.errorContainer.innerHTML = '';
 }
 
+/**
+ * 将时间字符串 "MM:SS.mmm" 转换为毫秒数
+ */
 function timeToMs(timeStr) {
-  if (!timeStr || timeStr === '--:--.--' || timeStr === '') {
-    return Infinity;
-  }
-  
+  if (!timeStr || timeStr === '--:--.--' || timeStr === '') return Infinity;
   try {
     const parts = timeStr.split(/[:.]/);
     if (parts.length >= 2) {
       const minutes = parseInt(parts[0]) || 0;
       const seconds = parseInt(parts[1]) || 0;
       let milliseconds = 0;
-      
       if (parts.length >= 3) {
         const msStr = parts[2].padEnd(3, '0').slice(0, 3);
         milliseconds = parseInt(msStr) || 0;
       }
-      
       return minutes * 60000 + seconds * 1000 + milliseconds;
     }
     return Infinity;
   } catch (e) {
     return Infinity;
   }
-}
-
-function msToTime(ms) {
-  if (ms === Infinity || isNaN(ms) || ms === null) {
-    return '--:--.--';
-  }
-  
-  const minutes = Math.floor(ms / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  const milliseconds = Math.floor(ms % 1000);
-  
-  return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
 }
 
 function getDrivetrainClass(drivetrain) {
@@ -97,43 +104,55 @@ function getPowerTypeIcon(powerType) {
   return powerType === '电车' ? '⚡' : '⛽';
 }
 
-// ==================== 数据处理 ====================
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * 防抖函数
+ */
+function debounce(fn, delay = 200) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+// ==================== 数据加载 ====================
 
 function loadData() {
-  console.log('开始加载数据...');
   showLoading();
   clearError();
-  
+
   fetch('data.json')
     .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP错误 ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP错误 ${response.status}`);
       return response.json();
     })
     .then(data => {
-      console.log('数据加载成功，记录数:', data.length);
-      
-      if (!Array.isArray(data)) {
-        throw new Error('数据格式错误：应为数组');
-      }
-      
-      lapData = data;
-      isDataLoaded = true;
-      
-      // 处理赛道数据
+      if (!Array.isArray(data)) throw new Error('数据格式错误：应为数组');
+
+      state.lapData = data;
+      state.isDataLoaded = true;
+
       processTrackData();
-      
-      // 设置更新时间
-      if (data.length > 0 && elements.updateTime) {
+
+      // 设置更新时间为最新日期
+      if (data.length > 0 && el.updateTime) {
         const latestDate = data.reduce((latest, item) => {
           return item.date > latest ? item.date : latest;
         }, data[0].date);
-        elements.updateTime.textContent = latestDate;
+        el.updateTime.textContent = latestDate;
       }
-      
+
       hideLoading();
-      console.log('数据初始化完成');
     })
     .catch(error => {
       console.error('数据加载失败:', error);
@@ -142,98 +161,80 @@ function loadData() {
     });
 }
 
+// ==================== 数据处理 ====================
+
 function processTrackData() {
-  // 1. 按赛道分组数据
-  trackDataMap = {};
-  
-  lapData.forEach(item => {
+  // 1. 按赛道分组
+  state.trackDataMap = {};
+  state.lapData.forEach(item => {
     if (!item.track) return;
-    
-    if (!trackDataMap[item.track]) {
-      trackDataMap[item.track] = [];
+    if (!state.trackDataMap[item.track]) {
+      state.trackDataMap[item.track] = [];
     }
-    trackDataMap[item.track].push(item);
+    state.trackDataMap[item.track].push(item);
   });
-  
+
   // 2. 生成赛道标签页
   generateTrackTabs();
-  
+
   // 3. 生成各赛道页面
   generateTrackPages();
-  
+
   // 4. 生成赛道统计卡片
   generateTrackStats();
-  
-  // 5. 初始化"所有赛道"表格
-  renderAllTracksTable();
-  
-  // 6. 填充筛选器选项
+
+  // 5. 填充筛选器选项
   populateFilters();
-  
+
+  // 6. 渲染"所有赛道"表格
+  renderAllTracksTable();
+
   // 7. 更新统计信息
   updateCurrentStats();
 }
 
 function generateTrackTabs() {
-  // 取出“所有赛道”tab（HTML里原本就有）
   const allTab = document.querySelector('.track-tab[data-track="all"]');
+  el.trackTabs.innerHTML = '';
+  el.trackTabs.appendChild(allTab);
 
-  // 清空 tabs 容器
-  elements.trackTabs.innerHTML = '';
-
-  // 放回“所有赛道”
-  elements.trackTabs.appendChild(allTab);
-
-  // 为每个赛道创建 tab
-  Object.keys(trackDataMap).forEach(track => {
-    const count = trackDataMap[track].length;
-
+  Object.keys(state.trackDataMap).forEach(track => {
+    const count = state.trackDataMap[track].length;
     const tab = document.createElement('div');
     tab.className = 'track-tab';
     tab.dataset.track = track;
-    tab.innerHTML = `${track} <span class="track-count">${count}</span>`;
-
-    elements.trackTabs.appendChild(tab);
+    tab.innerHTML = `${escapeHtml(track)} <span class="track-count">${count}</span>`;
+    el.trackTabs.appendChild(tab);
   });
 
-  // 更新“所有赛道”数量
-  const allCount = document.querySelector(
-    '.track-tab[data-track="all"] .track-count'
-  );
-  if (allCount) {
-    allCount.textContent = lapData.length;
-  }
+  const allCount = document.querySelector('.track-tab[data-track="all"] .track-count');
+  if (allCount) allCount.textContent = state.lapData.length;
 }
 
 function generateTrackPages() {
   const container = document.querySelector('.container');
-  
-  Object.keys(trackDataMap).forEach(track => {
-    const trackId = track.replace(/\s+/g, '-');
-    const data = trackDataMap[track];
-    
-    // 检查是否已存在
+  const statsElement = document.querySelector('.stats');
+
+  Object.keys(state.trackDataMap).forEach(track => {
+    const trackId = getTrackId(track);
+    const data = state.trackDataMap[track];
+
     if (document.getElementById(`${trackId}Content`)) return;
-    
-    // 收集该赛道的布局
+
     const layouts = [...new Set(data.map(item => item.layout))].filter(l => l);
-    
-    // 创建赛道页面
+
     const content = document.createElement('div');
     content.id = `${trackId}Content`;
     content.className = 'track-content';
-    
+
     content.innerHTML = `
       <div class="track-header">
-        <div class="track-name">${track}</div>
-        <div class="track-layouts">
-          可用布局：${layouts.join(' • ')}
-        </div>
-        <div style="margin-top: 10px; color: #aaa; font-size: 0.9rem;">
-          ${data.length} 条记录 | 最快圈速：${getFastestTime(data)}
+        <div class="track-name">${escapeHtml(track)}</div>
+        <div class="track-layouts">可用布局：${escapeHtml(layouts.join(' • ')) || '--'}</div>
+        <div class="track-meta">
+          <strong>${data.length}</strong> 条记录 · 最快圈速：<strong>${escapeHtml(getFastestTime(data))}</strong>
         </div>
       </div>
-      
       <div class="table-container">
         <table class="track-table">
           <thead>
@@ -241,7 +242,7 @@ function generateTrackPages() {
               <th>排名</th>
               <th>车辆</th>
               <th>布局</th>
-              <th>圈速 ⏱</th>
+              <th>圈速</th>
               <th>马力</th>
               <th>驱动</th>
               <th>动力</th>
@@ -250,288 +251,431 @@ function generateTrackPages() {
               <th>日期</th>
             </tr>
           </thead>
-          <tbody id="${trackId}TableBody">
-            </tbody>
+          <tbody id="${trackId}TableBody"></tbody>
         </table>
       </div>
     `;
-    
-    // 插入到统计信息之前
-    const statsElement = document.querySelector('.stats');
+
     container.insertBefore(content, statsElement);
-    
-    // 渲染该赛道的表格
     renderTrackTable(track, data);
   });
 }
 
 function generateTrackStats() {
-  elements.trackStatsGrid.innerHTML = '';
-  
-  Object.keys(trackDataMap).forEach(track => {
-    const data = trackDataMap[track];
+  el.trackStatsGrid.innerHTML = '';
+
+  Object.keys(state.trackDataMap).forEach(track => {
+    const data = state.trackDataMap[track];
     const fastest = getFastestRecord(data);
     const carCount = new Set(data.map(item => item.car)).size;
     const layouts = new Set(data.map(item => item.layout)).size;
-    
+
     const card = document.createElement('div');
     card.className = 'track-stat-card';
-    
     card.innerHTML = `
-      <div style="font-weight: bold; color: #40e0d0; margin-bottom: 10px;">${track}</div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="color: #aaa;">记录数：</span>
-        <span style="color: white;">${data.length}</span>
+      <div class="card-title">${escapeHtml(track)}</div>
+      <div class="card-row">
+        <span class="label">记录数</span>
+        <span class="value">${data.length}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="color: #aaa;">车辆数：</span>
-        <span style="color: white;">${carCount}</span>
+      <div class="card-row">
+        <span class="label">车辆数</span>
+        <span class="value">${carCount}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="color: #aaa;">布局数：</span>
-        <span style="color: white;">${layouts}</span>
+      <div class="card-row">
+        <span class="label">布局数</span>
+        <span class="value">${layouts}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="color: #aaa;">最快圈速：</span>
-        <span style="color: #ff8c00; font-weight: bold;">${getFastestTime(data)}</span>
+      <div class="card-row">
+        <span class="label">最快圈速</span>
+        <span class="value highlight">${escapeHtml(getFastestTime(data))}</span>
       </div>
-      <div style="display: flex; justify-content: space-between;">
-        <span style="color: #aaa;">最快车辆：</span>
-        <span style="color: #ff8c00; font-size: 0.9rem;">${fastest?.car || '--'}</span>
+      <div class="card-row">
+        <span class="label">最快车辆</span>
+        <span class="value car-name" title="${escapeHtml(fastest?.car || '')}">${escapeHtml(fastest?.car || '--')}</span>
       </div>
     `;
-    
-    card.addEventListener('click', () => {
-      switchTrack(track);
-    });
-    
-    elements.trackStatsGrid.appendChild(card);
+
+    card.addEventListener('click', () => switchTrack(track));
+    el.trackStatsGrid.appendChild(card);
   });
 }
 
+// ==================== 渲染逻辑 ====================
+
+/**
+ * 生成单行 HTML
+ */
+function renderRow(item, index, showTrack = false) {
+  const rankClass = index < 3 ? `rank-${index + 1}` : '';
+  const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
+  const drivetrainClass = getDrivetrainClass(item.drivetrain);
+  const powerTypeClass = item.power_type === '电车' ? 'electric' : 'gas';
+  const modText = item.mod === '是' ? '是' : '否';
+
+  const trackCell = showTrack
+    ? `<td>${escapeHtml(item.track || '未知赛道')}</td>`
+    : '';
+
+  return `
+    <tr class="${rankClass}">
+      <td><span class="rank-badge">${index + 1}</span></td>
+      <td class="car-cell" title="${escapeHtml(item.car || '')}">${escapeHtml(item.car || '未知车辆')}</td>
+      ${trackCell}
+      <td>${escapeHtml(item.layout || '--')}</td>
+      <td class="time-cell">${escapeHtml(item.time || '--:--.--')}</td>
+      <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+      <td class="${drivetrainClass}">${escapeHtml(item.drivetrain || '--')}</td>
+      <td><span class="power-type-cell ${powerTypeClass}">${getPowerTypeIcon(item.power_type || '')} ${escapeHtml(item.power_type || '--')}</span></td>
+      <td><span class="control-type">${escapeHtml(item.control_type || '--')}</span></td>
+      <td class="${modClass}">${modText}</td>
+      <td>${escapeHtml(item.date || '--')}</td>
+    </tr>
+  `;
+}
+
+/**
+ * 渲染空状态
+ */
+function renderEmptyState(tbody, colspan, message = '没有找到匹配的记录', desc = '尝试调整筛选条件或重置筛选') {
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="${colspan}">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">${escapeHtml(message)}</div>
+          <div class="empty-desc">${escapeHtml(desc)}</div>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+/**
+ * 应用筛选条件到数据
+ */
+function applyFilters(data) {
+  const f = state.filters;
+  return data.filter(item => {
+    if (f.track !== 'all' && item.track !== f.track) return false;
+    if (f.car !== 'all' && item.car !== f.car) return false;
+    if (f.drivetrain !== 'all' && item.drivetrain !== f.drivetrain) return false;
+    if (f.layout !== 'all' && item.layout !== f.layout) return false;
+    if (f.powerType !== 'all' && item.power_type !== f.powerType) return false;
+    if (f.mod !== 'all' && item.mod !== f.mod) return false;
+    if (f.search) {
+      const q = f.search.toLowerCase();
+      const haystack = `${item.car || ''} ${item.track || ''} ${item.layout || ''}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * 应用排序到数据
+ */
+function applySort(data) {
+  const { column, direction } = state.sort;
+  const sorted = [...data];
+  const dir = direction === 'asc' ? 1 : -1;
+
+  sorted.sort((a, b) => {
+    let va = a[column];
+    let vb = b[column];
+
+    // 圈速特殊处理：按毫秒数排序
+    if (column === 'time') {
+      return (timeToMs(va) - timeToMs(vb)) * dir;
+    }
+    // 马力按数值排序
+    if (column === 'power') {
+      return ((va || 0) - (vb || 0)) * dir;
+    }
+    // 日期按字符串比较（YYYY-M-D 格式可正确排序）
+    if (column === 'date') {
+      va = va || '';
+      vb = vb || '';
+      return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+    }
+    // 默认字符串比较
+    va = (va || '').toString();
+    vb = (vb || '').toString();
+    return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+  });
+
+  return sorted;
+}
+
+/**
+ * 渲染"所有赛道"表格（应用筛选 + 排序）
+ */
 function renderAllTracksTable() {
-  const tbody = elements.allTracksTableBody;
+  const tbody = el.allTracksTableBody;
   if (!tbody) return;
-  
-  tbody.innerHTML = '';
-  
-  if (lapData.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="12" style="text-align: center; padding: 40px;">
-          没有找到记录
-        </td>
-      </tr>
-    `;
+
+  // 应用筛选
+  let data = applyFilters(state.lapData);
+
+  // 应用排序
+  data = applySort(data);
+
+  if (data.length === 0) {
+    renderEmptyState(tbody, 11);
+    updateCurrentStats(data.length);
     return;
   }
-  
-  // 按时间排序
-  const sortedData = [...lapData].sort((a, b) => {
-    return timeToMs(a.time) - timeToMs(b.time);
-  });
-  
-  sortedData.forEach((item, index) => {
-    const tr = document.createElement('tr');
-    
-    if (index < 3) {
-      tr.className = `rank-${index + 1}`;
+
+  tbody.innerHTML = data
+    .map((item, index) => renderRow(item, index, true))
+    .join('');
+
+  updateCurrentStats(data.length);
+}
+
+/**
+ * 渲染单个赛道表格（按圈速排序）
+ */
+function renderTrackTable(track, data) {
+  const trackId = getTrackId(track);
+  const tbody = document.getElementById(`${trackId}TableBody`);
+  if (!tbody) return;
+
+  const sortedData = [...data].sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
+
+  if (sortedData.length === 0) {
+    renderEmptyState(tbody, 10);
+    return;
+  }
+
+  tbody.innerHTML = sortedData
+    .map((item, index) => renderRow(item, index, false))
+    .join('');
+}
+
+/**
+ * 更新排序指示器
+ */
+function updateSortIndicators() {
+  const ths = el.allTracksTable.querySelectorAll('th[data-sort]');
+  ths.forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.sort === state.sort.column) {
+      th.classList.add(state.sort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
     }
-    
-    const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
-    const drivetrainClass = getDrivetrainClass(item.drivetrain);
-    
-    tr.innerHTML = `
-	  <td><strong>${index + 1}</strong></td>
-	  <td class="car-cell">${item.car || '未知车辆'}</td>
-	  <td>${item.track || '未知赛道'}</td>
-	  <td>${item.layout || '--'}</td>
-	  <td class="time-cell">${item.time || '--:--.--'}</td>
-	  <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
-	  <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
-	  <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
-	  <td><span class="control-type">${item.control_type || '--'}</span></td>
-	  <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
-	  <td>${item.date || '--'}</td>
-	`;
-    
-    tbody.appendChild(tr);
   });
 }
 
-function renderTrackTable(track, data) {
-  const trackId = track.replace(/\s+/g, '-');
-  const tbody = document.getElementById(`${trackId}TableBody`);
-  
-  if (!tbody) return;
-  
-  tbody.innerHTML = '';
-  
-  // 按时间排序
-  const sortedData = [...data].sort((a, b) => {
-    return timeToMs(a.time) - timeToMs(b.time);
-  });
-  
-  sortedData.forEach((item, index) => {
-    const tr = document.createElement('tr');
-    
-    if (index < 3) {
-      tr.className = `rank-${index + 1}`;
-    }
-    
-    const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
-    const drivetrainClass = getDrivetrainClass(item.drivetrain);
-    
-    tr.innerHTML = `
-	  <td><strong>${index + 1}</strong></td>
-	  <td class="car-cell">${item.car || '未知车辆'}</td>
-	  <td>${item.layout || '--'}</td>
-	  <td class="time-cell">${item.time || '--:--.--'}</td>
-	  <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
-	  <td class="${drivetrainClass}">${item.drivetrain || '--'}</td>
-	  <td>${getPowerTypeIcon(item.power_type || '')} ${item.power_type || '--'}</td>
-	  <td><span class="control-type">${item.control_type || '--'}</span></td>
-	  <td class="${modClass}">${item.mod === '是' ? '✅ 是' : '❌ 否'}</td>
-	  <td>${item.date || '--'}</td>
-	`;
-    
-    tbody.appendChild(tr);
-  });
-}
+// ==================== 筛选器填充 ====================
 
 function populateFilters() {
-  const uniqueValues = {
-    tracks: new Set(),
-    cars: new Set(),
-    layouts: new Set()
-  };
-  
-  lapData.forEach(item => {
-    if (item.track) uniqueValues.tracks.add(item.track);
-    if (item.car) uniqueValues.cars.add(item.car);
-    if (item.layout) uniqueValues.layouts.add(item.layout);
+  const unique = { tracks: new Set(), cars: new Set(), layouts: new Set() };
+
+  state.lapData.forEach(item => {
+    if (item.track) unique.tracks.add(item.track);
+    if (item.car) unique.cars.add(item.car);
+    if (item.layout) unique.layouts.add(item.layout);
   });
-  
-  // 填充赛道选项
-  const trackSelect = document.getElementById('trackSelect');
-  if (trackSelect) {
-    [...uniqueValues.tracks].sort().forEach(track => {
-      const option = document.createElement('option');
-      option.value = track;
-      option.textContent = track;
-      trackSelect.appendChild(option);
-    });
-  }
-  
-  // 填充车辆选项
-  const carSelect = document.getElementById('carSelect');
-  if (carSelect) {
-    [...uniqueValues.cars].sort().forEach(car => {
-      const option = document.createElement('option');
-      option.value = car;
-      option.textContent = car;
-      carSelect.appendChild(option);
-    });
-  }
-  
-  // 填充布局选项
-  const layoutSelect = document.getElementById('layoutSelect');
-  if (layoutSelect) {
-    [...uniqueValues.layouts].sort().forEach(layout => {
-      const option = document.createElement('option');
-      option.value = layout;
-      option.textContent = layout;
-      layoutSelect.appendChild(option);
-    });
-  }
+
+  fillSelect(el.trackSelect, [...unique.tracks].sort());
+  fillSelect(el.carSelect, [...unique.cars].sort());
+  fillSelect(el.layoutSelect, [...unique.layouts].sort());
 }
+
+function fillSelect(select, values) {
+  if (!select) return;
+  // 保留第一个 option（"全部"）
+  const firstOption = select.querySelector('option');
+  select.innerHTML = '';
+  if (firstOption) select.appendChild(firstOption);
+
+  values.forEach(value => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
+}
+
+// ==================== 工具：获取最快圈速 ====================
 
 function getFastestTime(data) {
   if (!data || data.length === 0) return '--:--.--';
-  
   const fastest = data.reduce((min, item) => {
     const timeMs = timeToMs(item.time);
     return timeMs < min.timeMs ? { time: item.time, timeMs } : min;
   }, { time: null, timeMs: Infinity });
-  
   return fastest.time || '--:--.--';
 }
 
 function getFastestRecord(data) {
   if (!data || data.length === 0) return null;
-  
   return data.reduce((min, item) => {
     const timeMs = timeToMs(item.time);
     return timeMs < min.timeMs ? { ...item, timeMs } : min;
   }, { timeMs: Infinity });
 }
 
+function getTrackId(track) {
+  return track.replace(/\s+/g, '-');
+}
+
 // ==================== 页面切换 ====================
 
 function switchTrack(track) {
-  // 更新活动标签
   document.querySelectorAll('.track-tab').forEach(tab => {
     tab.classList.remove('active');
   });
-  const activeTab = document.querySelector(`.track-tab[data-track="${track}"]`);
-  if (activeTab) {
-    activeTab.classList.add('active');
-  }
-  
-  // 更新活动内容
+  const activeTab = document.querySelector(`.track-tab[data-track="${CSS.escape(track)}"]`);
+  if (activeTab) activeTab.classList.add('active');
+
   document.querySelectorAll('.track-content').forEach(content => {
     content.classList.remove('active');
   });
-  
-  const contentId = track === 'all' ? 'allTracksContent' : `${track.replace(/\s+/g, '-')}Content`;
+
+  const contentId = track === 'all' ? 'allTracksContent' : `${getTrackId(track)}Content`;
   const contentEl = document.getElementById(contentId);
-  if (contentEl) {
-    contentEl.classList.add('active');
-  }
-  
-  // 更新当前赛道状态
-  currentTrack = track;
-  
-  // 更新统计信息
+  if (contentEl) contentEl.classList.add('active');
+
+  state.currentTrack = track;
   updateCurrentStats();
 }
 
-function updateCurrentStats() {
-  let currentData;
-  
-  if (currentTrack === 'all') {
-    currentData = lapData;
-  } else {
-    currentData = trackDataMap[currentTrack] || [];
+function updateCurrentStats(count) {
+  // 如果传入了筛选后的数量，直接使用；否则根据当前赛道计算
+  if (typeof count === 'number') {
+    el.currentRecords.textContent = count;
+    return;
   }
-  
-  // 只更新记录数，最快圈速信息已合并到静态文本中
-  elements.currentRecords.textContent = currentData.length;
+
+  let currentData;
+  if (state.currentTrack === 'all') {
+    currentData = state.lapData;
+  } else {
+    currentData = state.trackDataMap[state.currentTrack] || [];
+  }
+  el.currentRecords.textContent = currentData.length;
+}
+
+// ==================== 事件绑定 ====================
+
+function bindEvents() {
+  // 赛道标签页切换
+  if (el.trackTabs) {
+    el.trackTabs.addEventListener('click', e => {
+      const tab = e.target.closest('.track-tab');
+      if (!tab) return;
+      const track = tab.dataset.track;
+      if (!track) return;
+      switchTrack(track);
+    });
+  }
+
+  // 筛选器变化
+  if (el.trackSelect) {
+    el.trackSelect.addEventListener('change', () => {
+      state.filters.track = el.trackSelect.value;
+      renderAllTracksTable();
+    });
+  }
+  if (el.carSelect) {
+    el.carSelect.addEventListener('change', () => {
+      state.filters.car = el.carSelect.value;
+      renderAllTracksTable();
+    });
+  }
+  if (el.drivetrainSelect) {
+    el.drivetrainSelect.addEventListener('change', () => {
+      state.filters.drivetrain = el.drivetrainSelect.value;
+      renderAllTracksTable();
+    });
+  }
+  if (el.layoutSelect) {
+    el.layoutSelect.addEventListener('change', () => {
+      state.filters.layout = el.layoutSelect.value;
+      renderAllTracksTable();
+    });
+  }
+  if (el.powerTypeSelect) {
+    el.powerTypeSelect.addEventListener('change', () => {
+      state.filters.powerType = el.powerTypeSelect.value;
+      renderAllTracksTable();
+    });
+  }
+  if (el.modSelect) {
+    el.modSelect.addEventListener('change', () => {
+      state.filters.mod = el.modSelect.value;
+      renderAllTracksTable();
+    });
+  }
+
+  // 搜索（防抖）
+  if (el.searchInput) {
+    const debouncedSearch = debounce(value => {
+      state.filters.search = value;
+      renderAllTracksTable();
+    }, 200);
+    el.searchInput.addEventListener('input', () => {
+      debouncedSearch(el.searchInput.value.trim());
+    });
+  }
+
+  // 重置筛选
+  if (el.resetFilters) {
+    el.resetFilters.addEventListener('click', () => {
+      state.filters = {
+        track: 'all',
+        car: 'all',
+        drivetrain: 'all',
+        layout: 'all',
+        powerType: 'all',
+        mod: 'all',
+        search: '',
+      };
+      // 重置 UI
+      el.trackSelect.value = 'all';
+      el.carSelect.value = 'all';
+      el.drivetrainSelect.value = 'all';
+      el.layoutSelect.value = 'all';
+      el.powerTypeSelect.value = 'all';
+      el.modSelect.value = 'all';
+      el.searchInput.value = '';
+      renderAllTracksTable();
+    });
+  }
+
+  // 表头排序
+  if (el.allTracksTable) {
+    el.allTracksTable.addEventListener('click', e => {
+      const th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      const column = th.dataset.sort;
+      if (!column) return;
+
+      // 切换排序方向
+      if (state.sort.column === column) {
+        state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sort.column = column;
+        // 圈速、排名默认升序（小在前），其他默认降序
+        state.sort.direction = (column === 'time' || column === 'rank') ? 'asc' : 'desc';
+      }
+
+      updateSortIndicators();
+      renderAllTracksTable();
+    });
+  }
 }
 
 // ==================== 初始化 ====================
 
 function initApp() {
-  console.log('初始化多赛道应用...');
+  bindEvents();
   loadData();
 }
 
-// 页面加载完成后初始化
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
-}
-
-if (elements.trackTabs) {
-  elements.trackTabs.addEventListener('click', e => {
-    // 找到最近的 track-tab（防止点到 span）
-    const tab = e.target.closest('.track-tab');
-    if (!tab) return;
-  
-    const track = tab.dataset.track;
-    if (!track) return;
-  
-    switchTrack(track);
-  });
 }

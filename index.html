@@ -3,460 +3,785 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BeamNG赛车圈速榜 - 多赛道版</title>
+  <title>BeamNG 赛车圈速榜 - 多赛道版</title>
   <style>
+    /* ==================== 设计令牌 ==================== */
+    :root {
+      --bg-primary: #0f1020;
+      --bg-secondary: #161830;
+      --bg-card: rgba(28, 30, 60, 0.6);
+      --bg-card-hover: rgba(40, 44, 80, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.15);
+      --text-primary: #f5f7ff;
+      --text-secondary: #a8aec9;
+      --text-muted: #6b7194;
+      --accent-pink: #ff3d8b;
+      --accent-orange: #ff8c42;
+      --accent-cyan: #4dd9e6;
+      --accent-gold: #ffd24d;
+      --accent-silver: #c9d1e3;
+      --accent-bronze: #e0915f;
+      --accent-green: #5dd39e;
+      --accent-blue: #5b9eff;
+      --accent-red: #ff6b6b;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+      --shadow-glow-pink: 0 0 24px rgba(255, 61, 139, 0.35);
+      --shadow-glow-cyan: 0 0 24px rgba(77, 217, 230, 0.3);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
-    body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #fff;
-      padding: 10px 15px;
-      min-height: 100vh;
-      overflow-x: hidden;
+
+    html {
+      scroll-behavior: smooth;
     }
-    
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                   'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+      background:
+        radial-gradient(ellipse at top left, rgba(255, 61, 139, 0.08), transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(77, 217, 230, 0.08), transparent 50%),
+        linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      padding: 16px;
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
     .container {
-      max-width: 99%;
+      max-width: 1400px;
       margin: 0 auto;
       width: 100%;
     }
-    
+
+    /* ==================== 顶部头部 ==================== */
     header {
       text-align: center;
-      margin-bottom: 20px;
-      padding: 15px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 24px;
+      padding: 28px 20px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
     }
-    
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange), var(--accent-cyan));
+    }
+
     h1 {
-      font-size: 2.2rem;
-      margin-bottom: 8px;
-      background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange) 50%, var(--accent-cyan));
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       color: transparent;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
-    
+
     .game-info {
-      color: #aaa;
-      font-size: 0.85rem;
-      margin-bottom: 15px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-    
-    /* 赛道标签页 */
+
+    .game-info span {
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .game-info .divider {
+      color: var(--text-muted);
+    }
+
+    /* ==================== 赛道标签页 ==================== */
     .track-tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-      padding: 0 5px;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding: 4px;
     }
-    
+
     .track-tab {
-      padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 6px;
+      padding: 10px 18px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: all 0.3s;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #aaa;
-      font-weight: bold;
+      transition: var(--transition);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.92rem;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(8px);
     }
-    
+
     .track-tab:hover {
-      background: rgba(64, 224, 208, 0.1);
-      color: #40e0d0;
+      background: var(--bg-card-hover);
+      color: var(--accent-cyan);
+      border-color: rgba(77, 217, 230, 0.4);
+      transform: translateY(-1px);
     }
-    
+
     .track-tab.active {
-      background: linear-gradient(90deg, #ff0080, #ff8c00);
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
       color: white;
-      border-color: #ff8c00;
-      box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
+      border-color: transparent;
+      box-shadow: var(--shadow-glow-pink);
     }
-    
+
     .track-tab .track-count {
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.8rem;
-      margin-left: 5px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
     }
-    
-    /* 赛道内容区域 */
+
+    .track-tab.active .track-count {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ==================== 内容区域 ==================== */
     .track-content {
       display: none;
-      animation: fadeIn 0.5s ease;
+      animation: fadeIn 0.4s ease;
     }
-    
+
     .track-content.active {
       display: block;
     }
-    
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
-    /* 赛道标题 */
+
     .track-header {
       text-align: center;
-      margin-bottom: 25px;
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 20px;
+      padding: 24px 20px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
     }
-    
+
     .track-name {
-      font-size: 2rem;
-      margin-bottom: 10px;
-      color: #ff8c00;
-      text-shadow: 0 2px 10px rgba(255, 140, 0, 0.3);
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--accent-orange);
+      text-shadow: 0 0 20px rgba(255, 140, 66, 0.3);
     }
-    
+
     .track-layouts {
-      color: #40e0d0;
+      color: var(--accent-cyan);
       font-size: 0.9rem;
+      font-weight: 500;
     }
-    
-    /* 筛选器区域 */
+
+    .track-meta {
+      margin-top: 10px;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    .track-meta strong {
+      color: var(--accent-orange);
+    }
+
+    /* ==================== 筛选器 ==================== */
     .filters {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
+      background: var(--bg-card);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
     }
-    
+
     .filter-group {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    
+
     .filter-group label {
-      font-weight: bold;
-      color: #40e0d0;
+      font-weight: 600;
+      color: var(--accent-cyan);
       white-space: nowrap;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
-    
+
     select, button, input {
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: 1px solid #333;
-      background: #2a2a3e;
-      color: white;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: rgba(15, 16, 32, 0.7);
+      color: var(--text-primary);
       font-size: 0.85rem;
       min-width: 110px;
+      font-family: inherit;
+      transition: var(--transition);
     }
-    
+
     #searchInput {
       flex-grow: 1;
       min-width: 200px;
-      max-width: 300px;
+      max-width: 320px;
     }
-    
-    select:focus, button:hover, input:focus {
+
+    select:focus, input:focus {
       outline: none;
-      border-color: #40e0d0;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(77, 217, 230, 0.15);
     }
-    
+
+    select:hover, input:hover {
+      border-color: rgba(77, 217, 230, 0.4);
+    }
+
     button {
-      background: linear-gradient(90deg, #ff0080, #ff8c00);
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
       border: none;
       cursor: pointer;
-      transition: transform 0.2s;
-      font-weight: bold;
+      font-weight: 700;
+      color: white;
     }
-    
+
     button:hover {
-      transform: translateY(-2px);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-glow-pink);
     }
-    
-    /* 加载状态 */
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    /* ==================== 加载状态 ==================== */
     .loading {
       display: none;
       text-align: center;
-      padding: 20px;
-      color: #40e0d0;
-      font-size: 1.1rem;
+      padding: 40px 20px;
+      color: var(--accent-cyan);
+      font-size: 1rem;
     }
-    
+
     .loading.active {
       display: block;
     }
-    
+
     .spinner {
       display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(64, 224, 208, 0.3);
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(77, 217, 230, 0.2);
       border-radius: 50%;
-      border-top-color: #40e0d0;
-      animation: spin 1s ease-in-out infinite;
+      border-top-color: var(--accent-cyan);
+      animation: spin 0.8s linear infinite;
       margin-right: 10px;
       vertical-align: middle;
     }
-    
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    
-    /* 表格容器 */
+
+    /* ==================== 表格 ==================== */
     .table-container {
       width: 100%;
       overflow-x: auto;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: 15px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      margin-top: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow-sm);
     }
-    
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
-      min-width: 1000px;
+      min-width: 980px;
     }
-    
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
     th {
-      background: linear-gradient(90deg, #1a1a2e, #16213e);
-      padding: 12px 10px;
+      background: linear-gradient(180deg, rgba(40, 44, 80, 0.95), rgba(28, 30, 60, 0.95));
+      padding: 14px 12px;
       text-align: center;
-      font-weight: bold;
-      color: #40e0d0;
-      border-bottom: 2px solid #ff0080;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      border-bottom: 2px solid var(--accent-pink);
       cursor: pointer;
       user-select: none;
       position: relative;
       white-space: nowrap;
+      transition: var(--transition);
+      font-size: 0.85rem;
+      letter-spacing: 0.3px;
     }
-    
+
+    th.sortable:hover {
+      background: linear-gradient(180deg, rgba(60, 64, 110, 0.95), rgba(40, 44, 80, 0.95));
+      color: var(--accent-orange);
+    }
+
     th.sort-asc::after {
       content: " ▲";
       position: absolute;
-      right: 10px;
-      color: #ff8c00;
+      right: 8px;
+      color: var(--accent-orange);
+      font-size: 0.75rem;
     }
-    
+
     th.sort-desc::after {
       content: " ▼";
       position: absolute;
-      right: 10px;
-      color: #ff8c00;
+      right: 8px;
+      color: var(--accent-orange);
+      font-size: 0.75rem;
     }
-    
+
     td {
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border-subtle);
       white-space: nowrap;
       text-align: center;
       transition: background-color 0.2s;
     }
-    
-    /* 行高亮效果 */
+
     tbody tr {
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.2s;
     }
-    
+
     tbody tr:hover {
-      background: rgba(255, 140, 0, 0.15) !important;
+      background: rgba(255, 140, 66, 0.1) !important;
     }
-    
-    tbody tr.highlight {
-      background: rgba(64, 224, 208, 0.1) !important;
-      box-shadow: 0 0 0 2px rgba(64, 224, 208, 0.3);
-    }
-    
+
     tbody tr:nth-child(odd) {
       background: rgba(255, 255, 255, 0.02);
     }
-    
+
     tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.01);
+      background: rgba(255, 255, 255, 0.005);
     }
-    
-    /* 为前三名添加更醒目的效果 */
-    .rank-1 .time-cell {
-      font-size: 1.2rem;
-      color: gold !important;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-    }
-    
-    .rank-1 td {
-      background: linear-gradient(90deg, rgba(255,215,0,0.1), transparent) !important;
-    }
-    
+
+    /* ==================== 前三名高亮 ==================== */
     .rank-1 {
-      background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
-      border-left: 4px solid gold;
+      background: linear-gradient(90deg, rgba(255, 210, 77, 0.18), rgba(255, 210, 77, 0.04)) !important;
+      border-left: 4px solid var(--accent-gold);
     }
-    
+
+    .rank-1 .time-cell {
+      font-size: 1.15rem;
+      color: var(--accent-gold) !important;
+      text-shadow: 0 0 12px rgba(255, 210, 77, 0.5);
+    }
+
+    .rank-1 .rank-badge {
+      background: linear-gradient(135deg, var(--accent-gold), #ffaa00);
+      color: #1a1a2e;
+    }
+
     .rank-2 {
-      background: linear-gradient(90deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05)) !important;
-      border-left: 4px solid silver;
+      background: linear-gradient(90deg, rgba(201, 209, 227, 0.15), rgba(201, 209, 227, 0.03)) !important;
+      border-left: 4px solid var(--accent-silver);
     }
-    
+
+    .rank-2 .rank-badge {
+      background: linear-gradient(135deg, var(--accent-silver), #8a92a8);
+      color: #1a1a2e;
+    }
+
     .rank-3 {
-      background: linear-gradient(90deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)) !important;
-      border-left: 4px solid #cd7f32;
+      background: linear-gradient(90deg, rgba(224, 145, 95, 0.15), rgba(224, 145, 95, 0.03)) !important;
+      border-left: 4px solid var(--accent-bronze);
     }
-    
-    /* 特定单元格样式 */
+
+    .rank-3 .rank-badge {
+      background: linear-gradient(135deg, var(--accent-bronze), #b56a3a);
+      color: #1a1a2e;
+    }
+
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+
+    /* ==================== 单元格样式 ==================== */
     .time-cell {
-      font-family: 'Courier New', monospace;
+      font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
       font-size: 1rem;
-      font-weight: bold;
-      color: #ff8c00;
+      font-weight: 700;
+      color: var(--accent-orange);
       letter-spacing: 0.5px;
     }
-    
+
     .car-cell {
-      font-weight: bold;
-      color: #40e0d0;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      text-align: left !important;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    
+
     .power-cell {
-      color: #ff0080;
-      font-weight: bold;
+      color: var(--accent-pink);
+      font-weight: 700;
     }
-    
-    .drivetrain-fwd { color: #4CAF50; }
-    .drivetrain-rwd { color: #2196F3; }
-    .drivetrain-awd { color: #FF9800; }
-    
-    /* 模组列样式 */
+
+    .drivetrain-fwd { color: var(--accent-green); font-weight: 600; }
+    .drivetrain-rwd { color: var(--accent-blue); font-weight: 600; }
+    .drivetrain-awd { color: var(--accent-orange); font-weight: 600; }
+
     .mod-cell-yes {
-      color: #4CAF50;
-      font-weight: bold;
+      color: var(--accent-green);
+      font-weight: 700;
     }
-    
+
     .mod-cell-no {
-      color: #FF9800;
+      color: var(--text-muted);
     }
-    
-    /* 控制类型 */
+
     .control-type {
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      background: rgba(76, 175, 80, 0.3) !important;
-      color: #fff !important;
-      border: 1px solid rgba(76, 175, 80, 0.5);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(93, 211, 158, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(93, 211, 158, 0.3);
       display: inline-block;
-      min-width: 60px;
     }
-    
-    /* 统计区域 */
+
+    .power-type-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .power-type-cell.electric {
+      color: var(--accent-cyan);
+    }
+
+    .power-type-cell.gas {
+      color: var(--accent-orange);
+    }
+
+    /* ==================== 空状态 ==================== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state .empty-title {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .empty-state .empty-desc {
+      font-size: 0.88rem;
+    }
+
+    /* ==================== 错误提示 ==================== */
+    .error-message {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      color: var(--accent-red);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin: 16px 0;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ==================== 赛道统计卡片 ==================== */
+    .track-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .track-stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: var(--transition);
+      backdrop-filter: blur(8px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .track-stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange));
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .track-stat-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 140, 66, 0.4);
+      box-shadow: var(--shadow-md);
+      background: var(--bg-card-hover);
+    }
+
+    .track-stat-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-title {
+      font-weight: 800;
+      color: var(--accent-cyan);
+      margin-bottom: 14px;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+
+    .card-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .card-row .label {
+      color: var(--text-secondary);
+    }
+
+    .card-row .value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .card-row .value.highlight {
+      color: var(--accent-orange);
+      font-weight: 700;
+    }
+
+    .card-row .value.car-name {
+      color: var(--accent-cyan);
+      font-size: 0.82rem;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    /* ==================== 底部统计 ==================== */
     .stats {
       display: flex;
       justify-content: space-between;
-      margin-top: 15px;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: #aaa;
-    }
-    
-    /* 错误提示 */
-    .error-message {
-      background: rgba(255, 87, 87, 0.1);
-      border: 1px solid rgba(255, 87, 87, 0.3);
-      color: #ff6b6b;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 15px 0;
-      text-align: center;
-    }
-    
-    /* 赛道统计卡片 */
-    .track-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 15px;
+      align-items: center;
       margin-top: 20px;
+      padding: 14px 18px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
+      flex-wrap: wrap;
+      gap: 10px;
     }
-    
-    .track-stat-card {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      padding: 15px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      cursor: pointer;
-      transition: transform 0.3s;
+
+    .stats a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-weight: 600;
+      transition: var(--transition);
     }
-    
-    .track-stat-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(255, 140, 0, 0.5);
+
+    .stats a:hover {
+      color: var(--accent-orange);
+      text-decoration: underline;
     }
-    
-    /* 响应式调整 */
+
+    .stats #currentRecords {
+      color: var(--accent-orange);
+      font-weight: 700;
+    }
+
+    /* ==================== 响应式 ==================== */
     @media (max-width: 768px) {
       body {
-        padding: 8px 10px;
+        padding: 10px;
       }
-      
+
       .container {
         max-width: 100%;
       }
-      
+
+      header {
+        padding: 20px 14px;
+        margin-bottom: 16px;
+      }
+
+      .game-info {
+        gap: 8px;
+        font-size: 0.82rem;
+      }
+
       .track-tabs {
         overflow-x: auto;
-        padding-bottom: 10px;
+        flex-wrap: nowrap;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
       }
-      
+
       .track-tab {
-        padding: 8px 15px;
-        font-size: 0.9rem;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        flex-shrink: 0;
       }
-      
+
       .filters {
         flex-direction: column;
         align-items: stretch;
-        gap: 8px;
+        gap: 10px;
+        padding: 14px;
       }
-      
+
       .filter-group {
         width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
       }
-      
+
+      .filter-group label {
+        font-size: 0.82rem;
+      }
+
       select, button, input {
         width: 100%;
+        min-width: 0;
       }
-      
+
       #searchInput {
         max-width: 100%;
       }
-      
+
       table {
-        font-size: 0.8rem;
+        font-size: 0.82rem;
+        min-width: 800px;
       }
-      
+
       th, td {
-        padding: 8px 4px;
+        padding: 10px 6px;
       }
-      
+
+      .car-cell {
+        max-width: 180px;
+      }
+
       .track-stats-grid {
         grid-template-columns: 1fr;
+      }
+
+      .stats {
+        flex-direction: column;
+        text-align: center;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* ==================== 滚动条美化 ==================== */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(77, 217, 230, 0.3);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(77, 217, 230, 0.5);
+    }
+
+    /* 减少动画偏好 */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
@@ -466,40 +791,41 @@
     <header>
       <h1>BEAMNG.DRIVE 多赛道圈速榜</h1>
       <div class="game-info">
-        数据更新时间：<span id="updateTime">2025-12-30</span>
-        | 车手：<span id="driverName">少德</span>
+        <span>数据更新： <span id="updateTime">--</span></span>
+        <span class="divider">|</span>
+        <span>车手： <span id="driverName">少德</span></span>
       </div>
     </header>
-    
+
     <div class="track-tabs" id="trackTabs">
       <div class="track-tab active" data-track="all">
         所有赛道 <span class="track-count" id="allCount">0</span>
       </div>
-      </div>
-    
+    </div>
+
     <div id="allTracksContent" class="track-content active">
       <div class="track-header">
-        <div class="track-name">🏆 综合排行榜</div>
-        <div class="track-layouts">查看所有赛道的综合排名</div>
+        <div class="track-name">综合排行榜</div>
+        <div class="track-layouts">查看所有赛道的综合排名 · 点击表头排序</div>
       </div>
-      
+
       <div class="filters">
         <div class="filter-group">
-          <label for="trackSelect">赛道：</label>
+          <label for="trackSelect">赛道</label>
           <select id="trackSelect">
             <option value="all">全部赛道</option>
           </select>
         </div>
-        
+
         <div class="filter-group">
-          <label for="carSelect">车辆：</label>
+          <label for="carSelect">车辆</label>
           <select id="carSelect">
             <option value="all">全部车辆</option>
           </select>
         </div>
-        
+
         <div class="filter-group">
-          <label for="drivetrainSelect">驱动：</label>
+          <label for="drivetrainSelect">驱动</label>
           <select id="drivetrainSelect">
             <option value="all">全部驱动</option>
             <option value="前驱">前驱</option>
@@ -507,42 +833,42 @@
             <option value="四驱">四驱</option>
           </select>
         </div>
-        
+
         <div class="filter-group">
-          <label for="layoutSelect">布局：</label>
+          <label for="layoutSelect">布局</label>
           <select id="layoutSelect">
             <option value="all">全部布局</option>
           </select>
         </div>
-        
+
         <div class="filter-group">
-          <label for="powerTypeSelect">动力：</label>
+          <label for="powerTypeSelect">动力</label>
           <select id="powerTypeSelect">
             <option value="all">全部动力</option>
             <option value="油车">油车</option>
             <option value="电车">电车</option>
           </select>
         </div>
-        
+
         <div class="filter-group">
-          <label for="modSelect">模组：</label>
+          <label for="modSelect">模组</label>
           <select id="modSelect">
             <option value="all">全部</option>
             <option value="是">模组车辆</option>
             <option value="否">原版车辆</option>
           </select>
         </div>
-        
+
         <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
         <button id="resetFilters">重置筛选</button>
       </div>
-      
+
       <div id="loading" class="loading">
         <div class="spinner"></div>正在加载数据...
       </div>
-      
+
       <div id="errorContainer" style="display: none;"></div>
-      
+
       <div class="table-container">
         <table id="allTracksTable">
           <thead>
@@ -551,7 +877,7 @@
               <th data-sort="car" class="sortable">车辆</th>
               <th data-sort="track" class="sortable">赛道</th>
               <th data-sort="layout" class="sortable">布局</th>
-              <th data-sort="time" class="sortable">圈速 ⏱</th>
+              <th data-sort="time" class="sortable">圈速</th>
               <th data-sort="power" class="sortable">马力</th>
               <th data-sort="drivetrain" class="sortable">驱动</th>
               <th data-sort="power_type" class="sortable">动力</th>
@@ -560,24 +886,22 @@
               <th data-sort="date" class="sortable">日期</th>
             </tr>
           </thead>
-          <tbody id="allTracksTableBody">
-            </tbody>
+          <tbody id="allTracksTableBody"></tbody>
         </table>
       </div>
-      
+
       <div class="track-header" style="margin-top: 30px;">
-        <div class="track-name">📊 各赛道统计</div>
+        <div class="track-name">各赛道统计</div>
         <div class="track-layouts">点击卡片查看详细排名</div>
       </div>
-      
-      <div class="track-stats-grid" id="trackStatsGrid">
-        </div>
+
+      <div class="track-stats-grid" id="trackStatsGrid"></div>
     </div>
-    
+
     <div class="stats">
       <div>当前记录数：<span id="currentRecords">0</span></div>
       <div>所有赛道记录均为计时赛模式的动态起步</div>
-      <div>源码：<a href="https://github.com/FurryShaoDe/BeamNG.Time_Attack" target="_blank" style="color: #40e0d0; text-decoration: none;">GitHub</a></div>
+      <div>源码：<a href="https://github.com/FurryShaoDe/BeamNG.Time_Attack" target="_blank" rel="noopener">GitHub</a></div>
     </div>
   </div>
 
