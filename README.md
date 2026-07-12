@@ -1,4 +1,4 @@
-# BeamNG.Drive 圈速排行榜
+# BEAMNG.DRIVE 多赛道圈速榜
 
 > 纯靠各路 AI 写的代码，这个 GitHub Pages 也没整明白
 

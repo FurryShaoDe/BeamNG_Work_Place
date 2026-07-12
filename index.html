@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BeamNG 赛车圈速榜 - 多赛道版</title>
+  <title>BEAMNG.DRIVE 多赛道圈速榜</title>
+  <meta name="description" content="BeamNG.drive 多赛道圈速排行榜：按赛道内排名展示各车辆最快圈速、马力、驱动与动力类型，支持筛选与排序。">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     /* ==================== 设计令牌 ==================== */
     :root {
@@ -806,7 +808,7 @@
     <div id="allTracksContent" class="track-content active">
       <div class="track-header">
         <div class="track-name">综合排行榜</div>
-        <div class="track-layouts">查看所有赛道的综合排名 · 点击表头排序</div>
+        <div class="track-layouts">跨赛道综合榜：排名为该车在所属赛道内的名次（跨赛道不混排绝对圈速）· 点击表头排序</div>
       </div>
 
       <div class="filters">
@@ -859,6 +861,13 @@
           </select>
         </div>
 
+        <div class="filter-group">
+          <label for="versionSelect">版本</label>
+          <select id="versionSelect">
+            <option value="all">全部版本</option>
+          </select>
+        </div>
+
         <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
         <button id="resetFilters">重置筛选</button>
       </div>
@@ -873,7 +882,7 @@
         <table id="allTracksTable">
           <thead>
             <tr>
-              <th data-sort="rank">排名</th>
+              <th data-sort="rank" title="该车在所属赛道内的排名（跨赛道不混排绝对圈速）">赛道内排名</th>
               <th data-sort="car" class="sortable">车辆</th>
               <th data-sort="track" class="sortable">赛道</th>
               <th data-sort="layout" class="sortable">布局</th>

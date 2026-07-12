@@ -17,6 +17,7 @@ const state = {
     layout: 'all',
     powerType: 'all',
     mod: 'all',
+    version: 'all',
     search: '',
   },
 };
@@ -40,6 +41,7 @@ const el = {
   layoutSelect: document.getElementById('layoutSelect'),
   powerTypeSelect: document.getElementById('powerTypeSelect'),
   modSelect: document.getElementById('modSelect'),
+  versionSelect: document.getElementById('versionSelect'),
   resetFilters: document.getElementById('resetFilters'),
 };
 
@@ -90,6 +92,16 @@ function timeToMs(timeStr) {
   } catch (e) {
     return Infinity;
   }
+}
+
+/**
+ * 将日期字符串 "YYYY-M-D" 转换为可比较的数字（如 20260102），
+ * 避免字符串比较导致 "2026-1-11" 排在 "2026-1-2" 前面的错误。
+ */
+function dateToSortKey(dateStr) {
+  if (!dateStr) return 0;
+  const parts = String(dateStr).split('-').map(p => parseInt(p, 10) || 0);
+  return (parts[0] || 0) * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
 }
 
 function getDrivetrainClass(drivetrain) {
@@ -147,7 +159,7 @@ function loadData() {
       // 设置更新时间为最新日期
       if (data.length > 0 && el.updateTime) {
         const latestDate = data.reduce((latest, item) => {
-          return item.date > latest ? item.date : latest;
+          return dateToSortKey(item.date) > dateToSortKey(latest) ? item.date : latest;
         }, data[0].date);
         el.updateTime.textContent = latestDate;
       }
@@ -163,7 +175,26 @@ function loadData() {
 
 // ==================== 数据处理 ====================
 
+/**
+ * 计算每条记录在「所属赛道内」的排名（按圈速），写入 item.trackRank。
+ * 综合排行榜据此展示赛道内排名，避免把不同赛道的绝对圈速混在一起无意义比较。
+ */
+function computeTrackRanks() {
+  const byTrack = {};
+  state.lapData.forEach(item => {
+    if (!item.track) return;
+    (byTrack[item.track] = byTrack[item.track] || []).push(item);
+  });
+  Object.keys(byTrack).forEach(track => {
+    const sorted = [...byTrack[track]].sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
+    sorted.forEach((item, i) => { item.trackRank = i + 1; });
+  });
+}
+
 function processTrackData() {
+  // 0. 计算每条记录的赛道内排名
+  computeTrackRanks();
+
   // 1. 按赛道分组
   state.trackDataMap = {};
   state.lapData.forEach(item => {
@@ -307,7 +338,10 @@ function generateTrackStats() {
  * 生成单行 HTML
  */
 function renderRow(item, index, showTrack = false) {
-  const rankClass = index < 3 ? `rank-${index + 1}` : '';
+  // 综合榜（跨赛道）展示「赛道内排名」；单赛道榜展示当前顺序名次。
+  // 这样综合榜不再把不同赛道的绝对圈速混在一起无意义比较。
+  const displayRank = showTrack ? (item.trackRank || index + 1) : (index + 1);
+  const rankClass = displayRank <= 3 ? `rank-${displayRank}` : '';
   const modClass = item.mod === '是' ? 'mod-cell-yes' : 'mod-cell-no';
   const drivetrainClass = getDrivetrainClass(item.drivetrain);
   const powerTypeClass = item.power_type === '电车' ? 'electric' : 'gas';
@@ -319,7 +353,7 @@ function renderRow(item, index, showTrack = false) {
 
   return `
     <tr class="${rankClass}">
-      <td><span class="rank-badge">${index + 1}</span></td>
+      <td><span class="rank-badge">${displayRank}</span></td>
       <td class="car-cell" title="${escapeHtml(item.car || '')}">${escapeHtml(item.car || '未知车辆')}</td>
       ${trackCell}
       <td>${escapeHtml(item.layout || '--')}</td>
@@ -363,6 +397,7 @@ function applyFilters(data) {
     if (f.layout !== 'all' && item.layout !== f.layout) return false;
     if (f.powerType !== 'all' && item.power_type !== f.powerType) return false;
     if (f.mod !== 'all' && item.mod !== f.mod) return false;
+    if (f.version !== 'all' && item.game_version !== f.version) return false;
     if (f.search) {
       const q = f.search.toLowerCase();
       const haystack = `${item.car || ''} ${item.track || ''} ${item.layout || ''}`.toLowerCase();
@@ -377,26 +412,26 @@ function applyFilters(data) {
  */
 function applySort(data) {
   const { column, direction } = state.sort;
+  // "排名"列本质是按圈速排序（排名即快慢次序）
+  const sortColumn = column === 'rank' ? 'time' : column;
   const sorted = [...data];
   const dir = direction === 'asc' ? 1 : -1;
 
   sorted.sort((a, b) => {
-    let va = a[column];
-    let vb = b[column];
+    let va = a[sortColumn];
+    let vb = b[sortColumn];
 
     // 圈速特殊处理：按毫秒数排序
-    if (column === 'time') {
+    if (sortColumn === 'time') {
       return (timeToMs(va) - timeToMs(vb)) * dir;
     }
     // 马力按数值排序
-    if (column === 'power') {
+    if (sortColumn === 'power') {
       return ((va || 0) - (vb || 0)) * dir;
     }
-    // 日期按字符串比较（YYYY-M-D 格式可正确排序）
-    if (column === 'date') {
-      va = va || '';
-      vb = vb || '';
-      return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+    // 日期按数值排序（YYYY-M-D 需转为可比较数字，避免字符串比较出错）
+    if (sortColumn === 'date') {
+      return (dateToSortKey(va) - dateToSortKey(vb)) * dir;
     }
     // 默认字符串比较
     va = (va || '').toString();
@@ -469,17 +504,19 @@ function updateSortIndicators() {
 // ==================== 筛选器填充 ====================
 
 function populateFilters() {
-  const unique = { tracks: new Set(), cars: new Set(), layouts: new Set() };
+  const unique = { tracks: new Set(), cars: new Set(), layouts: new Set(), versions: new Set() };
 
   state.lapData.forEach(item => {
     if (item.track) unique.tracks.add(item.track);
     if (item.car) unique.cars.add(item.car);
     if (item.layout) unique.layouts.add(item.layout);
+    if (item.game_version) unique.versions.add(item.game_version);
   });
 
   fillSelect(el.trackSelect, [...unique.tracks].sort());
   fillSelect(el.carSelect, [...unique.cars].sort());
   fillSelect(el.layoutSelect, [...unique.layouts].sort());
+  fillSelect(el.versionSelect, [...unique.versions].sort());
 }
 
 function fillSelect(select, values) {
@@ -608,6 +645,12 @@ function bindEvents() {
       renderAllTracksTable();
     });
   }
+  if (el.versionSelect) {
+    el.versionSelect.addEventListener('change', () => {
+      state.filters.version = el.versionSelect.value;
+      renderAllTracksTable();
+    });
+  }
 
   // 搜索（防抖）
   if (el.searchInput) {
@@ -630,6 +673,7 @@ function bindEvents() {
         layout: 'all',
         powerType: 'all',
         mod: 'all',
+        version: 'all',
         search: '',
       };
       // 重置 UI
@@ -639,6 +683,7 @@ function bindEvents() {
       el.layoutSelect.value = 'all';
       el.powerTypeSelect.value = 'all';
       el.modSelect.value = 'all';
+      el.versionSelect.value = 'all';
       el.searchInput.value = '';
       renderAllTracksTable();
     });
