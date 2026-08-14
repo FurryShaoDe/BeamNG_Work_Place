@@ -1,25 +1,28 @@
-﻿// ==================== 全局状态 ====================
+// ==================== 全局状态 ====================
+
+/** 默认筛选状态（重置筛选时复用，避免字面量两处漂移） */
+const DEFAULT_FILTERS = {
+  track: 'all',
+  car: 'all',
+  drivetrain: 'all',
+  layout: 'all',
+  powerType: 'all',
+  mod: 'all',
+  version: 'all',
+  search: '',
+};
+
 const state = {
   lapData: [],            // 原始数据
   trackDataMap: {},       // 按赛道分组的数据
   currentTrack: 'all',    // 当前选中的赛道
-  isDataLoaded: false,
   // 排序状态
   sort: {
     column: 'time',       // 默认按圈速排序
     direction: 'asc',     // 升序（圈速越小越快）
   },
   // 筛选状态
-  filters: {
-    track: 'all',
-    car: 'all',
-    drivetrain: 'all',
-    layout: 'all',
-    powerType: 'all',
-    mod: 'all',
-    version: 'all',
-    search: '',
-  },
+  filters: { ...DEFAULT_FILTERS },
 };
 
 // ==================== DOM 元素引用 ====================
@@ -61,7 +64,7 @@ function showError(message) {
   }
   el.errorContainer.innerHTML = `
     <div class="error-message">
-      <strong>错误：</strong> ${message}
+      <strong>错误：</strong> ${escapeHtml(message)}
     </div>
   `;
   el.errorContainer.style.display = 'block';
@@ -161,7 +164,7 @@ function loadData() {
   showLoading();
   clearError();
 
-  fetch('data.json')
+  fetch('data.json', { cache: 'no-store' })
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP错误 ${response.status}`);
@@ -174,7 +177,6 @@ function loadData() {
       }
 
       state.lapData = data;
-      state.isDataLoaded = true;
 
       processTrackData();
 
@@ -254,20 +256,25 @@ function generateTrackTabs() {
   if (!el.trackTabs) {
     return;
   }
-  const allTab = document.querySelector('.track-tab[data-track="all"]');
+  const allTab = el.trackTabs.querySelector('.track-tab[data-track="all"]');
   el.trackTabs.innerHTML = '';
-  el.trackTabs.appendChild(allTab);
+  if (allTab) {
+    el.trackTabs.appendChild(allTab);
+  }
 
   Object.keys(state.trackDataMap).forEach(track => {
     const count = state.trackDataMap[track].length;
     const tab = document.createElement('div');
     tab.className = 'track-tab';
     tab.dataset.track = track;
+    // 键盘可访问：可用 Tab 聚焦，Enter/空格触发（事件委托见 bindEvents）
+    tab.setAttribute('role', 'button');
+    tab.tabIndex = 0;
     tab.innerHTML = `${escapeHtml(track)} <span class="track-count">${count}</span>`;
     el.trackTabs.appendChild(tab);
   });
 
-  const allCount = document.querySelector('.track-tab[data-track="all"] .track-count');
+  const allCount = el.trackTabs.querySelector('.track-tab[data-track="all"] .track-count');
   if (allCount) {
     allCount.textContent = state.lapData.length;
   }
@@ -306,16 +313,16 @@ function generateTrackPages() {
         <table class="track-table">
           <thead>
             <tr>
-              <th>排名</th>
-              <th>车辆</th>
-              <th>布局</th>
-              <th>圈速</th>
-              <th>马力</th>
-              <th>驱动</th>
-              <th>动力</th>
-              <th>控制</th>
-              <th>模组</th>
-              <th>日期</th>
+              <th scope="col">排名</th>
+              <th scope="col">车辆</th>
+              <th scope="col">布局</th>
+              <th scope="col">圈速</th>
+              <th scope="col">马力</th>
+              <th scope="col">驱动</th>
+              <th scope="col">动力</th>
+              <th scope="col">控制</th>
+              <th scope="col">模组</th>
+              <th scope="col">日期</th>
             </tr>
           </thead>
           <tbody id="${trackId}TableBody"></tbody>
@@ -368,7 +375,15 @@ function generateTrackStats() {
       </div>
     `;
 
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
     card.addEventListener('click', () => switchTrack(track));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        switchTrack(track);
+      }
+    });
     el.trackStatsGrid.appendChild(card);
   });
 }
@@ -388,7 +403,7 @@ function renderRow(item, index, showTrack = false) {
   const powerTypeClass = item.power_type === '电车' ? 'electric' : 'gas';
   const powerTypeIcon = getPowerTypeIcon(item.power_type || '');
   const powerTypeText = escapeHtml(item.power_type || '--');
-  const modText = item.mod === '是' ? '是' : '否';
+  const modText = escapeHtml(item.mod || '--');
 
   const trackCell = showTrack
     ? `<td>${escapeHtml(item.track || '未知赛道')}</td>`
@@ -401,7 +416,7 @@ function renderRow(item, index, showTrack = false) {
       ${trackCell}
       <td>${escapeHtml(item.layout || '--')}</td>
       <td class="time-cell">${escapeHtml(item.time || '--:--.--')}</td>
-      <td class="power-cell">${item.power ? item.power + ' hp' : '--'}</td>
+      <td class="power-cell">${item.power ? escapeHtml(item.power) + ' hp' : '--'}</td>
       <td class="${drivetrainClass}">${escapeHtml(item.drivetrain || '--')}</td>
       <td><span class="power-type-cell ${powerTypeClass}">${powerTypeIcon} ${powerTypeText}</span></td>
       <td><span class="control-type">${escapeHtml(item.control_type || '--')}</span></td>
@@ -563,6 +578,9 @@ function updateSortIndicators() {
     th.classList.remove('sort-asc', 'sort-desc');
     if (th.dataset.sort === state.sort.column) {
       th.classList.add(state.sort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+      th.setAttribute('aria-sort', state.sort.direction === 'asc' ? 'ascending' : 'descending');
+    } else {
+      th.setAttribute('aria-sort', 'none');
     }
   });
 }
@@ -570,7 +588,15 @@ function updateSortIndicators() {
 // ==================== 筛选器填充 ====================
 
 function populateFilters() {
-  const unique = { tracks: new Set(), cars: new Set(), layouts: new Set(), versions: new Set() };
+  const unique = {
+    tracks: new Set(),
+    cars: new Set(),
+    layouts: new Set(),
+    versions: new Set(),
+    drivetrains: new Set(),
+    powerTypes: new Set(),
+    mods: new Set(),
+  };
 
   state.lapData.forEach(item => {
     if (item.track) {
@@ -585,12 +611,24 @@ function populateFilters() {
     if (item.game_version) {
       unique.versions.add(item.game_version);
     }
+    if (item.drivetrain) {
+      unique.drivetrains.add(item.drivetrain);
+    }
+    if (item.power_type) {
+      unique.powerTypes.add(item.power_type);
+    }
+    if (item.mod) {
+      unique.mods.add(item.mod);
+    }
   });
 
   fillSelect(el.trackSelect, [...unique.tracks].sort());
   fillSelect(el.carSelect, [...unique.cars].sort());
   fillSelect(el.layoutSelect, [...unique.layouts].sort());
   fillSelect(el.versionSelect, [...unique.versions].sort());
+  fillSelect(el.drivetrainSelect, [...unique.drivetrains].sort());
+  fillSelect(el.powerTypeSelect, [...unique.powerTypes].sort());
+  fillSelect(el.modSelect, [...unique.mods].sort());
 }
 
 function fillSelect(select, values) {
@@ -615,14 +653,8 @@ function fillSelect(select, values) {
 // ==================== 工具：获取最快圈速 ====================
 
 function getFastestTime(data) {
-  if (!data || data.length === 0) {
-    return '--:--.--';
-  }
-  const fastest = data.reduce((min, item) => {
-    const timeMs = timeToMs(item.time);
-    return timeMs < min.timeMs ? { time: item.time, timeMs } : min;
-  }, { time: null, timeMs: Infinity });
-  return fastest.time || '--:--.--';
+  // 复用 getFastestRecord，避免重复的 reduce 逻辑
+  return getFastestRecord(data)?.time || '--:--.--';
 }
 
 function getFastestRecord(data) {
@@ -636,7 +668,8 @@ function getFastestRecord(data) {
 }
 
 function getTrackId(track) {
-  return track.replace(/\s+/g, '-');
+  // 加前缀避免与静态 id（allTracksContent 等）冲突；编码避免空格等字符折叠出相同 id
+  return 'track-' + encodeURIComponent(track);
 }
 
 // ==================== 页面切换 ====================
@@ -661,7 +694,12 @@ function switchTrack(track) {
   }
 
   state.currentTrack = track;
-  updateCurrentStats();
+  // 切回综合榜时重渲染，确保记录数与当前筛选结果一致
+  if (track === 'all') {
+    renderAllTracksTable();
+  } else {
+    updateCurrentStats();
+  }
 }
 
 function updateCurrentStats(count) {
@@ -685,8 +723,38 @@ function updateCurrentStats(count) {
 
 // ==================== 事件绑定 ====================
 
+/**
+ * 为单个筛选下拉框绑定 change 事件（七个下拉框共用一套逻辑）
+ */
+function bindFilter(select, key) {
+  if (!select) {
+    return;
+  }
+  select.addEventListener('change', () => {
+    state.filters[key] = select.value;
+    renderAllTracksTable();
+  });
+}
+
+/**
+ * 处理表头排序（点击与键盘共用）
+ */
+function handleTableSort(column) {
+  // 切换排序方向
+  if (state.sort.column === column) {
+    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sort.column = column;
+    // 圈速、排名默认升序（小在前），其他默认降序
+    state.sort.direction = (column === 'time' || column === 'rank') ? 'asc' : 'desc';
+  }
+
+  updateSortIndicators();
+  renderAllTracksTable();
+}
+
 function bindEvents() {
-  // 赛道标签页切换
+  // 赛道标签页切换（点击 + 键盘）
   if (el.trackTabs) {
     el.trackTabs.addEventListener('click', e => {
       const tab = e.target.closest('.track-tab');
@@ -699,51 +767,28 @@ function bindEvents() {
       }
       switchTrack(track);
     });
+
+    el.trackTabs.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      const tab = e.target.closest('.track-tab');
+      if (!tab || !tab.dataset.track) {
+        return;
+      }
+      e.preventDefault();
+      switchTrack(tab.dataset.track);
+    });
   }
 
-  // 筛选器变化
-  if (el.trackSelect) {
-    el.trackSelect.addEventListener('change', () => {
-      state.filters.track = el.trackSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.carSelect) {
-    el.carSelect.addEventListener('change', () => {
-      state.filters.car = el.carSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.drivetrainSelect) {
-    el.drivetrainSelect.addEventListener('change', () => {
-      state.filters.drivetrain = el.drivetrainSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.layoutSelect) {
-    el.layoutSelect.addEventListener('change', () => {
-      state.filters.layout = el.layoutSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.powerTypeSelect) {
-    el.powerTypeSelect.addEventListener('change', () => {
-      state.filters.powerType = el.powerTypeSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.modSelect) {
-    el.modSelect.addEventListener('change', () => {
-      state.filters.mod = el.modSelect.value;
-      renderAllTracksTable();
-    });
-  }
-  if (el.versionSelect) {
-    el.versionSelect.addEventListener('change', () => {
-      state.filters.version = el.versionSelect.value;
-      renderAllTracksTable();
-    });
-  }
+  // 筛选器变化（七个下拉框共用 bindFilter）
+  bindFilter(el.trackSelect, 'track');
+  bindFilter(el.carSelect, 'car');
+  bindFilter(el.drivetrainSelect, 'drivetrain');
+  bindFilter(el.layoutSelect, 'layout');
+  bindFilter(el.powerTypeSelect, 'powerType');
+  bindFilter(el.modSelect, 'mod');
+  bindFilter(el.versionSelect, 'version');
 
   // 搜索（防抖）
   if (el.searchInput) {
@@ -759,16 +804,7 @@ function bindEvents() {
   // 重置筛选
   if (el.resetFilters) {
     el.resetFilters.addEventListener('click', () => {
-      state.filters = {
-        track: 'all',
-        car: 'all',
-        drivetrain: 'all',
-        layout: 'all',
-        powerType: 'all',
-        mod: 'all',
-        version: 'all',
-        search: '',
-      };
+      state.filters = { ...DEFAULT_FILTERS };
       // 重置 UI
       el.trackSelect.value = 'all';
       el.carSelect.value = 'all';
@@ -782,29 +818,26 @@ function bindEvents() {
     });
   }
 
-  // 表头排序
+  // 表头排序（点击 + 键盘）
   if (el.allTracksTable) {
     el.allTracksTable.addEventListener('click', e => {
       const th = e.target.closest('th[data-sort]');
       if (!th) {
         return;
       }
-      const column = th.dataset.sort;
-      if (!column) {
+      handleTableSort(th.dataset.sort);
+    });
+
+    el.allTracksTable.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
         return;
       }
-
-      // 切换排序方向
-      if (state.sort.column === column) {
-        state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        state.sort.column = column;
-        // 圈速、排名默认升序（小在前），其他默认降序
-        state.sort.direction = (column === 'time' || column === 'rank') ? 'asc' : 'desc';
+      const th = e.target.closest('th[data-sort]');
+      if (!th) {
+        return;
       }
-
-      updateSortIndicators();
-      renderAllTracksTable();
+      e.preventDefault();
+      handleTableSort(th.dataset.sort);
     });
   }
 }

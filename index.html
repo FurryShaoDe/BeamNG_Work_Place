@@ -800,7 +800,7 @@
     </header>
 
     <div class="track-tabs" id="trackTabs">
-      <div class="track-tab active" data-track="all">
+      <div class="track-tab active" data-track="all" role="button" tabindex="0">
         所有赛道 <span class="track-count" id="allCount">0</span>
       </div>
     </div>
@@ -868,7 +868,7 @@
           </select>
         </div>
 
-        <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." />
+        <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." aria-label="搜索车辆或赛道" />
         <button id="resetFilters">重置筛选</button>
       </div>
 
@@ -876,23 +876,23 @@
         <div class="spinner"></div>正在加载数据...
       </div>
 
-      <div id="errorContainer" style="display: none;"></div>
+      <div id="errorContainer" style="display: none;" role="alert"></div>
 
       <div class="table-container">
         <table id="allTracksTable">
           <thead>
             <tr>
-              <th data-sort="rank" title="该车在所属赛道内的排名（跨赛道不混排绝对圈速）">赛道内排名</th>
-              <th data-sort="car" class="sortable">车辆</th>
-              <th data-sort="track" class="sortable">赛道</th>
-              <th data-sort="layout" class="sortable">布局</th>
-              <th data-sort="time" class="sortable">圈速</th>
-              <th data-sort="power" class="sortable">马力</th>
-              <th data-sort="drivetrain" class="sortable">驱动</th>
-              <th data-sort="power_type" class="sortable">动力</th>
-              <th data-sort="control_type" class="sortable">控制</th>
-              <th data-sort="mod" class="sortable">模组</th>
-              <th data-sort="date" class="sortable">日期</th>
+              <th data-sort="rank" class="sortable" scope="col" tabindex="0" title="该车在所属赛道内的排名（跨赛道不混排绝对圈速）">赛道内排名</th>
+              <th data-sort="car" class="sortable" scope="col" tabindex="0">车辆</th>
+              <th data-sort="track" class="sortable" scope="col" tabindex="0">赛道</th>
+              <th data-sort="layout" class="sortable" scope="col" tabindex="0">布局</th>
+              <th data-sort="time" class="sortable" scope="col" tabindex="0">圈速</th>
+              <th data-sort="power" class="sortable" scope="col" tabindex="0">马力</th>
+              <th data-sort="drivetrain" class="sortable" scope="col" tabindex="0">驱动</th>
+              <th data-sort="power_type" class="sortable" scope="col" tabindex="0">动力</th>
+              <th data-sort="control_type" class="sortable" scope="col" tabindex="0">控制</th>
+              <th data-sort="mod" class="sortable" scope="col" tabindex="0">模组</th>
+              <th data-sort="date" class="sortable" scope="col" tabindex="0">日期</th>
             </tr>
           </thead>
           <tbody id="allTracksTableBody"></tbody>
