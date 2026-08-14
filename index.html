@@ -9,28 +9,55 @@
   <style>
     /* ==================== 设计令牌 ==================== */
     :root {
-      --bg-primary: #0f1020;
-      --bg-secondary: #161830;
-      --bg-card: rgba(28, 30, 60, 0.6);
-      --bg-card-hover: rgba(40, 44, 80, 0.7);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-strong: rgba(255, 255, 255, 0.15);
-      --text-primary: #f5f7ff;
-      --text-secondary: #a8aec9;
-      --text-muted: #6b7194;
-      --accent-pink: #ff3d8b;
-      --accent-orange: #ff8c42;
-      --accent-cyan: #4dd9e6;
-      --accent-gold: #ffd24d;
-      --accent-silver: #c9d1e3;
-      --accent-bronze: #e0915f;
-      --accent-green: #5dd39e;
-      --accent-blue: #5b9eff;
-      --accent-red: #ff6b6b;
-      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
-      --shadow-glow-pink: 0 0 24px rgba(255, 61, 139, 0.35);
-      --shadow-glow-cyan: 0 0 24px rgba(77, 217, 230, 0.3);
+      /* ===== 背景 ===== */
+      --bg-primary: #1e1d1a;
+      --bg-primary-rgb: 30, 29, 26;
+      --bg-secondary: #262521;
+      --bg-secondary-rgb: 38, 37, 33;
+      --bg-card-color: #3c3b34;
+      --bg-card-rgb: 60, 59, 52;
+      --bg-card: rgba(var(--bg-card-rgb), 0.65);
+      --bg-card-hover-color: #837f5e;
+      --bg-card-hover-rgb: 131, 127, 94;
+      --bg-card-hover: rgba(var(--bg-card-hover-rgb), 0.7);
+      /* ===== 边框（主文字色的半透明） ===== */
+      --border-subtle: rgba(var(--text-primary-rgb), 0.08);
+      --border-strong: rgba(var(--text-primary-rgb), 0.15);
+      /* ===== 文字 ===== */
+      --text-primary: #dbd8c1;
+      --text-primary-rgb: 219, 216, 193;
+      --text-secondary: #b3b984;
+      --text-secondary-rgb: 179, 185, 132;
+      --text-muted: #837f5e;
+      --text-muted-rgb: 131, 127, 94;
+      --text-warm: #e8e4cf;
+      /* ===== 强调色 ===== */
+      --accent-pink: #c3b867;
+      --accent-pink-rgb: 195, 184, 103;
+      --accent-orange: #b3b984;
+      --accent-orange-rgb: 179, 185, 132;
+      --accent-cyan: #dbd8c1;
+      --accent-cyan-rgb: 219, 216, 193;
+      --accent-gold: #c3b867;
+      --accent-gold-rgb: 195, 184, 103;
+      --accent-silver: #dbd8c1;
+      --accent-silver-rgb: 219, 216, 193;
+      --accent-bronze: #837f5e;
+      --accent-bronze-rgb: 131, 127, 94;
+      --accent-green: #b3b984;
+      --accent-green-rgb: 179, 185, 132;
+      --accent-blue: #837f5e;
+      --accent-blue-rgb: 131, 127, 94;
+      --accent-red: #dbd8c1;
+      --accent-red-rgb: 219, 216, 193;
+      /* ===== 名次徽章深端 ===== */
+      --badge-gold-end: #b7a85e;
+      --badge-silver-end: #b3b984;
+      --badge-bronze-end: #626054;
+      /* ===== 阴影 ===== */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 10px 28px rgba(26, 25, 19, 0.45);
+      --shadow-glow-pink: 0 0 20px rgba(var(--accent-gold-rgb), 0.18);
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
@@ -51,8 +78,8 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
                    'Microsoft YaHei', 'Helvetica Neue', sans-serif;
       background:
-        radial-gradient(ellipse at top left, rgba(255, 61, 139, 0.08), transparent 50%),
-        radial-gradient(ellipse at bottom right, rgba(77, 217, 230, 0.08), transparent 50%),
+        radial-gradient(ellipse at top left, rgba(var(--accent-gold-rgb), 0.06), transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(var(--accent-green-rgb), 0.05), transparent 50%),
         linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
       background-attachment: fixed;
       color: var(--text-primary);
@@ -87,7 +114,7 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 2px;
-      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange), var(--accent-cyan));
+      background: linear-gradient(90deg, var(--accent-gold), var(--text-warm));
     }
 
     h1 {
@@ -95,7 +122,7 @@
       font-weight: 800;
       letter-spacing: 1px;
       margin-bottom: 10px;
-      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange) 50%, var(--accent-cyan));
+      background: linear-gradient(90deg, var(--accent-gold) 0%, var(--text-warm) 60%, var(--accent-cyan) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -149,7 +176,7 @@
     .track-tab:hover {
       background: var(--bg-card-hover);
       color: var(--accent-cyan);
-      border-color: rgba(77, 217, 230, 0.4);
+      border-color: rgba(var(--accent-gold-rgb), 0.4);
       transform: translateY(-1px);
     }
 
@@ -202,7 +229,7 @@
       font-weight: 800;
       margin-bottom: 8px;
       color: var(--accent-orange);
-      text-shadow: 0 0 20px rgba(255, 140, 66, 0.3);
+      text-shadow: 0 0 20px rgba(var(--accent-gold-rgb), 0.3);
     }
 
     .track-layouts {
@@ -252,7 +279,7 @@
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-strong);
-      background: rgba(15, 16, 32, 0.7);
+      background: rgba(var(--bg-primary-rgb), 0.7);
       color: var(--text-primary);
       font-size: 0.85rem;
       min-width: 110px;
@@ -269,11 +296,11 @@
     select:focus, input:focus {
       outline: none;
       border-color: var(--accent-cyan);
-      box-shadow: 0 0 0 3px rgba(77, 217, 230, 0.15);
+      box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.15);
     }
 
     select:hover, input:hover {
-      border-color: rgba(77, 217, 230, 0.4);
+      border-color: rgba(var(--accent-gold-rgb), 0.4);
     }
 
     button {
@@ -310,7 +337,7 @@
       display: inline-block;
       width: 22px;
       height: 22px;
-      border: 3px solid rgba(77, 217, 230, 0.2);
+      border: 3px solid rgba(var(--accent-gold-rgb), 0.2);
       border-radius: 50%;
       border-top-color: var(--accent-cyan);
       animation: spin 0.8s linear infinite;
@@ -348,7 +375,7 @@
     }
 
     th {
-      background: linear-gradient(180deg, rgba(40, 44, 80, 0.95), rgba(28, 30, 60, 0.95));
+      background: linear-gradient(180deg, rgba(52, 51, 45, 0.95), rgba(30, 29, 26, 0.95));
       padding: 14px 12px;
       text-align: center;
       font-weight: 700;
@@ -364,7 +391,7 @@
     }
 
     th.sortable:hover {
-      background: linear-gradient(180deg, rgba(60, 64, 110, 0.95), rgba(40, 44, 80, 0.95));
+      background: linear-gradient(180deg, rgba(65, 64, 57, 0.95), rgba(30, 29, 26, 0.95));
       color: var(--accent-orange);
     }
 
@@ -397,7 +424,7 @@
     }
 
     tbody tr:hover {
-      background: rgba(255, 140, 66, 0.1) !important;
+      background: rgba(var(--accent-gold-rgb), 0.1) !important;
     }
 
     tbody tr:nth-child(odd) {
@@ -410,38 +437,38 @@
 
     /* ==================== 前三名高亮 ==================== */
     .rank-1 {
-      background: linear-gradient(90deg, rgba(255, 210, 77, 0.18), rgba(255, 210, 77, 0.04)) !important;
+      background: linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.18), rgba(var(--accent-gold-rgb), 0.04)) !important;
       border-left: 4px solid var(--accent-gold);
     }
 
     .rank-1 .time-cell {
       font-size: 1.15rem;
       color: var(--accent-gold) !important;
-      text-shadow: 0 0 12px rgba(255, 210, 77, 0.5);
+      text-shadow: 0 0 10px rgba(var(--accent-gold-rgb), 0.3);
     }
 
     .rank-1 .rank-badge {
-      background: linear-gradient(135deg, var(--accent-gold), #ffaa00);
+      background: linear-gradient(135deg, var(--accent-gold), var(--badge-gold-end));
       color: #1a1a2e;
     }
 
     .rank-2 {
-      background: linear-gradient(90deg, rgba(201, 209, 227, 0.15), rgba(201, 209, 227, 0.03)) !important;
+      background: linear-gradient(90deg, rgba(var(--accent-silver-rgb), 0.15), rgba(var(--accent-silver-rgb), 0.03)) !important;
       border-left: 4px solid var(--accent-silver);
     }
 
     .rank-2 .rank-badge {
-      background: linear-gradient(135deg, var(--accent-silver), #8a92a8);
+      background: linear-gradient(135deg, var(--accent-silver), var(--badge-silver-end));
       color: #1a1a2e;
     }
 
     .rank-3 {
-      background: linear-gradient(90deg, rgba(224, 145, 95, 0.15), rgba(224, 145, 95, 0.03)) !important;
+      background: linear-gradient(90deg, rgba(var(--accent-bronze-rgb), 0.15), rgba(var(--accent-bronze-rgb), 0.03)) !important;
       border-left: 4px solid var(--accent-bronze);
     }
 
     .rank-3 .rank-badge {
-      background: linear-gradient(135deg, var(--accent-bronze), #b56a3a);
+      background: linear-gradient(135deg, var(--accent-bronze), var(--badge-bronze-end));
       color: #1a1a2e;
     }
 
@@ -498,9 +525,9 @@
       border-radius: 999px;
       font-size: 0.78rem;
       font-weight: 700;
-      background: rgba(93, 211, 158, 0.15);
+      background: rgba(var(--accent-green-rgb), 0.15);
       color: var(--accent-green);
-      border: 1px solid rgba(93, 211, 158, 0.3);
+      border: 1px solid rgba(var(--accent-green-rgb), 0.3);
       display: inline-block;
     }
 
@@ -545,8 +572,8 @@
 
     /* ==================== 错误提示 ==================== */
     .error-message {
-      background: rgba(255, 107, 107, 0.1);
-      border: 1px solid rgba(255, 107, 107, 0.3);
+      background: rgba(var(--accent-red-rgb), 0.1);
+      border: 1px solid rgba(var(--accent-red-rgb), 0.3);
       color: var(--accent-red);
       padding: 16px;
       border-radius: var(--radius-md);
@@ -580,14 +607,14 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 3px;
-      background: linear-gradient(90deg, var(--accent-pink), var(--accent-orange));
+      background: linear-gradient(90deg, var(--accent-gold), var(--text-warm));
       opacity: 0;
       transition: var(--transition);
     }
 
     .track-stat-card:hover {
       transform: translateY(-4px);
-      border-color: rgba(255, 140, 66, 0.4);
+      border-color: rgba(var(--accent-gold-rgb), 0.4);
       box-shadow: var(--shadow-md);
       background: var(--bg-card-hover);
     }
@@ -771,12 +798,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(77, 217, 230, 0.3);
+      background: rgba(var(--accent-gold-rgb), 0.3);
       border-radius: 5px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(77, 217, 230, 0.5);
+      background: rgba(var(--accent-gold-rgb), 0.5);
     }
 
     /* 减少动画偏好 */
@@ -784,6 +811,316 @@
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ==================== 主题调色盘 ==================== */
+    #themeToggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 52px;
+      height: 52px;
+      min-width: 0;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 1.35rem;
+      z-index: 1000;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 84px;
+      width: 300px;
+      max-height: 72vh;
+      overflow-y: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md);
+      z-index: 1000;
+      padding: 14px;
+    }
+
+    .theme-panel[hidden] {
+      display: none;
+    }
+
+    .theme-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .theme-close {
+      width: 26px;
+      height: 26px;
+      min-width: 0;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    .theme-group-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin: 12px 0 4px;
+    }
+
+    .theme-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 5px 0;
+    }
+
+    .theme-item label {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .theme-item input[type="color"] {
+      width: 38px;
+      height: 28px;
+      min-width: 0;
+      padding: 2px;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: rgba(var(--bg-primary-rgb), 0.6);
+      cursor: pointer;
+    }
+
+    .theme-panel-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .theme-panel-actions button {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 8px;
+      font-size: 0.78rem;
+    }
+
+    .theme-preset-save {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .theme-preset-save input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.8rem;
+    }
+
+    .theme-preset-save button {
+      min-width: 0;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+    }
+
+    .theme-preset-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .theme-preset-apply {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      font-size: 0.78rem;
+      text-align: left;
+      background: rgba(var(--bg-primary-rgb), 0.6);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .theme-preset-apply:hover {
+      border-color: rgba(var(--accent-gold-rgb), 0.5);
+      color: var(--accent-gold);
+    }
+
+    .theme-preset-delete {
+      width: 26px;
+      height: 26px;
+      min-width: 0;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 0.72rem;
+      line-height: 1;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+    }
+
+    .theme-preset-delete:hover {
+      color: var(--accent-red);
+      border-color: rgba(var(--accent-red-rgb), 0.5);
+    }
+
+    .theme-preset-empty {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 8px 0;
+      text-align: center;
+    }
+
+    .theme-preset-files {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .theme-preset-files button {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 8px;
+      font-size: 0.78rem;
+    }
+
+    .theme-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%);
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      z-index: 1100;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+    }
+
+    .theme-toast.show {
+      opacity: 1;
+    }
+
+    /* ==================== 成绩录入 ==================== */
+    #recordSection {
+      margin-bottom: 20px;
+    }
+
+    #recordToggle {
+      padding: 10px 18px;
+      font-size: 0.9rem;
+    }
+
+    .record-card {
+      margin-top: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      backdrop-filter: blur(8px);
+    }
+
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin-bottom: 14px;
+    }
+
+    .record-hint {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .record-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .record-field label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .record-field input,
+    .record-field select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .record-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .record-actions button {
+      min-width: 0;
+      padding: 9px 20px;
+      font-size: 0.85rem;
+    }
+
+    #recordReset {
+      background: rgba(var(--bg-primary-rgb), 0.6);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    #recordReset:hover {
+      color: var(--accent-gold);
+      border-color: rgba(var(--accent-gold-rgb), 0.5);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .record-status {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: var(--accent-gold);
+    }
+
+    .record-status.error {
+      color: var(--accent-red);
+    }
+
+    @media (max-width: 768px) {
+      .record-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -798,6 +1135,84 @@
         <span>车手： <span id="driverName">少德</span></span>
       </div>
     </header>
+
+    <div id="recordSection" hidden>
+      <button id="recordToggle">＋ 录入成绩</button>
+      <div id="recordForm" class="record-card" hidden>
+        <div class="record-header">
+          <span>录入新成绩</span>
+          <span class="record-hint">仅本地生效：数据写入 data.json，推送 GitHub 后线上展示</span>
+        </div>
+        <div class="record-grid">
+          <div class="record-field">
+            <label for="rec-track">赛道 *</label>
+            <input type="text" id="rec-track" list="rec-track-list" placeholder="如：Hirochi赛车场">
+            <datalist id="rec-track-list"></datalist>
+          </div>
+          <div class="record-field">
+            <label for="rec-layout">布局 *</label>
+            <input type="text" id="rec-layout" list="rec-layout-list" placeholder="如：短途竞速环道">
+            <datalist id="rec-layout-list"></datalist>
+          </div>
+          <div class="record-field">
+            <label for="rec-car">车辆 *</label>
+            <input type="text" id="rec-car" list="rec-car-list" placeholder="如：Ibishu Covet Track (M)">
+            <datalist id="rec-car-list"></datalist>
+          </div>
+          <div class="record-field">
+            <label for="rec-time">圈速 *（MM:SS.mmm）</label>
+            <input type="text" id="rec-time" placeholder="如：01:15.856">
+          </div>
+          <div class="record-field">
+            <label for="rec-drivetrain">驱动</label>
+            <select id="rec-drivetrain">
+              <option value="前驱">前驱</option>
+              <option value="后驱">后驱</option>
+              <option value="四驱">四驱</option>
+            </select>
+          </div>
+          <div class="record-field">
+            <label for="rec-power-type">动力</label>
+            <select id="rec-power-type">
+              <option value="油车">油车</option>
+              <option value="电车">电车</option>
+            </select>
+          </div>
+          <div class="record-field">
+            <label for="rec-power">马力（hp）</label>
+            <input type="number" id="rec-power" min="1" placeholder="如：350">
+          </div>
+          <div class="record-field">
+            <label for="rec-control-type">控制</label>
+            <select id="rec-control-type">
+              <option value="手柄">手柄</option>
+              <option value="键盘">键盘</option>
+              <option value="方向盘">方向盘</option>
+            </select>
+          </div>
+          <div class="record-field">
+            <label for="rec-mod">模组</label>
+            <select id="rec-mod">
+              <option value="否">否</option>
+              <option value="是">是</option>
+            </select>
+          </div>
+          <div class="record-field">
+            <label for="rec-game-version">游戏版本</label>
+            <input type="text" id="rec-game-version" placeholder="如：0.38.3">
+          </div>
+          <div class="record-field">
+            <label for="rec-date">日期</label>
+            <input type="text" id="rec-date" placeholder="如：2026-1-15">
+          </div>
+        </div>
+        <div class="record-actions">
+          <button id="recordSubmit">提交记录</button>
+          <button id="recordReset">清空</button>
+        </div>
+        <div id="recordStatus" class="record-status" role="status"></div>
+      </div>
+    </div>
 
     <div class="track-tabs" id="trackTabs">
       <div class="track-tab active" data-track="all" role="button" tabindex="0">
@@ -914,6 +1329,37 @@
     </div>
   </div>
 
+  <button id="themeToggle" title="主题调色盘" aria-label="打开主题调色盘" aria-expanded="false">🎨</button>
+
+  <div class="theme-panel" id="themePanel" hidden>
+    <div class="theme-panel-header">
+      <span>🎨 主题调色盘</span>
+      <button class="theme-close" id="themeClose" aria-label="关闭调色盘">✕</button>
+    </div>
+    <div id="themeItems"></div>
+
+    <div class="theme-group-title">预设</div>
+    <div class="theme-preset-save">
+      <input type="text" id="presetName" placeholder="预设名称" maxlength="20" aria-label="预设名称">
+      <button id="presetSave">保存</button>
+    </div>
+    <div id="presetList"></div>
+    <div class="theme-preset-files">
+      <button id="presetExport">导出文件</button>
+      <button id="presetImport">导入文件</button>
+      <input type="file" id="presetFileInput" accept=".json,application/json" hidden>
+    </div>
+
+    <div class="theme-panel-actions">
+      <button id="themeReset">恢复默认</button>
+      <button id="themeCopy">复制 CSS</button>
+    </div>
+  </div>
+
+  <div class="theme-toast" id="themeToast" role="status"></div>
+
   <script src="main.js"></script>
+  <script src="record-form.js"></script>
+  <script src="theme-editor.js"></script>
 </body>
 </html>
