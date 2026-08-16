@@ -19,6 +19,8 @@
   const submitBtn = document.getElementById('recordSubmit');
   const resetBtn = document.getElementById('recordReset');
   const statusBox = document.getElementById('recordStatus');
+  const pendingPanel = document.getElementById('pendingPanel');
+  const pendingList = document.getElementById('pendingList');
 
   const fields = {
     track: document.getElementById('rec-track'),
@@ -162,6 +164,81 @@
     showStatus('');
   }
 
+  // ---------- 待确认赛道（游戏自动录入的映射学习） ----------
+
+  async function loadPending() {
+    if (!pendingPanel || !pendingList) {
+      return;
+    }
+    try {
+      const response = await fetch('/api/pending_tracks');
+      const result = await response.json();
+      renderPending(result.ok ? result.pending : {});
+    } catch (e) {
+      // 服务器不可达（如 file:// 或静态服务器）时静默隐藏
+      pendingPanel.hidden = true;
+    }
+  }
+
+  function renderPending(pending) {
+    const entries = Object.entries(pending || {});
+    pendingList.innerHTML = '';
+    pendingPanel.hidden = entries.length === 0;
+    if (entries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'pending-empty';
+      empty.textContent = '暂无待确认赛道';
+      pendingList.appendChild(empty);
+      return;
+    }
+    entries.forEach(([levelId, info]) => {
+      const row = document.createElement('div');
+      row.className = 'pending-item';
+
+      const display = document.createElement('span');
+      display.className = 'pending-display';
+      display.textContent = `${info.display || levelId}（${info.count || 1} 条记录）`;
+      display.title = `游戏内 ID: ${levelId}`;
+      row.appendChild(display);
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = info.display || levelId;
+      input.placeholder = '榜单显示名';
+      input.setAttribute('aria-label', `赛道 ${levelId} 的显示名`);
+      row.appendChild(input);
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = '确认';
+      confirmBtn.addEventListener('click', async () => {
+        const name = input.value.trim();
+        if (!name) {
+          return;
+        }
+        confirmBtn.disabled = true;
+        try {
+          const response = await fetch('/api/pending_tracks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ levelId, name }),
+          });
+          const result = await response.json();
+          if (result.ok) {
+            showStatus(`已确认赛道「${name}」`);
+          } else {
+            showStatus(result.error || '确认失败', true);
+          }
+        } catch (e) {
+          showStatus('确认失败：无法连接本地服务器', true);
+        }
+        loadPending();
+      });
+      row.appendChild(confirmBtn);
+
+      pendingList.appendChild(row);
+    });
+  }
+
   function init() {
     // 线上只读环境：整个录入区不显示
     if (isReadOnly || !section) {
@@ -170,6 +247,7 @@
     section.hidden = false;
     setDefaultDate();
     fillDatalists();
+    loadPending();
 
     if (toggleBtn && form) {
       toggleBtn.addEventListener('click', () => {

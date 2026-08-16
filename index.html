@@ -1123,6 +1123,42 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .pending-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pending-item .pending-display {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pending-item input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.82rem;
+    }
+
+    .pending-item button {
+      min-width: 0;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+    }
+
+    .pending-empty {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 8px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -1211,6 +1247,14 @@
           <button id="recordReset">清空</button>
         </div>
         <div id="recordStatus" class="record-status" role="status"></div>
+      </div>
+
+      <div id="pendingPanel" class="record-card" hidden>
+        <div class="record-header">
+          <span>待确认赛道</span>
+          <span class="record-hint">游戏自动录入的新赛道，确认显示名后自动记住</span>
+        </div>
+        <div id="pendingList"></div>
       </div>
     </div>
 
