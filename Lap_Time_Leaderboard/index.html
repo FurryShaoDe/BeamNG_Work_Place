@@ -248,33 +248,7 @@
       color: var(--accent-orange);
     }
 
-    /* ==================== 筛选器 ==================== */
-    .filters {
-      background: var(--bg-card);
-      padding: 16px;
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(8px);
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .filter-group label {
-      font-weight: 600;
-      color: var(--accent-cyan);
-      white-space: nowrap;
-      font-size: 0.85rem;
-    }
-
+    /* ==================== 表单控件 ==================== */
     select, button, input {
       padding: 8px 12px;
       border-radius: var(--radius-sm);
@@ -285,12 +259,6 @@
       min-width: 110px;
       font-family: inherit;
       transition: var(--transition);
-    }
-
-    #searchInput {
-      flex-grow: 1;
-      min-width: 200px;
-      max-width: 320px;
     }
 
     select:focus, input:focus {
@@ -582,19 +550,52 @@
       font-weight: 500;
     }
 
-    /* ==================== 赛道统计卡片 ==================== */
-    .track-stats-grid {
+    /* ==================== 赛道总览仪表盘 ==================== */
+    .dashboard-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
       margin-top: 20px;
     }
 
-    .track-stat-card {
+    .dashboard-stat {
       background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+
+    .dashboard-stat .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      line-height: 1.2;
+    }
+
+    .dashboard-stat .stat-value.gold {
+      color: var(--accent-gold);
+    }
+
+    .dashboard-stat .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .track-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 18px;
-      border: 1px solid var(--border-subtle);
       cursor: pointer;
       transition: var(--transition);
       backdrop-filter: blur(8px);
@@ -602,7 +603,7 @@
       overflow: hidden;
     }
 
-    .track-stat-card::before {
+    .track-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -612,60 +613,157 @@
       transition: var(--transition);
     }
 
-    .track-stat-card:hover {
+    .track-card:hover {
       transform: translateY(-4px);
       border-color: rgba(var(--accent-gold-rgb), 0.4);
       box-shadow: var(--shadow-md);
       background: var(--bg-card-hover);
     }
 
-    .track-stat-card:hover::before {
+    .track-card:hover::before {
       opacity: 1;
     }
 
-    .card-title {
+    .track-card-title {
       font-weight: 800;
       color: var(--accent-cyan);
-      margin-bottom: 14px;
       font-size: 1.05rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin-bottom: 4px;
     }
 
-    .card-row {
+    .track-card-layout {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .track-card-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+    }
+
+    .track-card-stats .row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 0.88rem;
+      align-items: center;
+      min-width: 0;
     }
 
-    .card-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .card-row .label {
+    .track-card-stats .label {
       color: var(--text-secondary);
     }
 
-    .card-row .value {
-      color: var(--text-primary);
+    .track-card-stats .value {
       font-weight: 600;
+      color: var(--text-primary);
     }
 
-    .card-row .value.highlight {
+    .track-card-stats .value.highlight {
       color: var(--accent-orange);
       font-weight: 700;
     }
 
-    .card-row .value.car-name {
+    .best-record {
+      grid-column: 1 / -1;
+      border: 1px solid rgba(var(--accent-gold-rgb), 0.35);
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.08), rgba(var(--accent-gold-rgb), 0.02));
+    }
+
+    .best-record-label {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .best-record-time {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+
+    .best-record-car {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--accent-cyan);
+      word-break: break-word;
+    }
+
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 12px;
+    }
+
+    .donut {
+      width: 84px;
+      height: 84px;
+      flex-shrink: 0;
+    }
+
+    .donut svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .donut-legend {
+      flex: 1;
       font-size: 0.82rem;
-      max-width: 160px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-align: right;
+    }
+
+    .donut-legend .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      color: var(--text-secondary);
+    }
+
+    .donut-legend .legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .donut-legend .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .donut-legend .legend-item .legend-count {
+      margin-left: auto;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .power-tags {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .power-tag {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .power-tag .tag-icon {
+      margin-right: 3px;
     }
 
     /* ==================== 底部统计 ==================== */
@@ -735,31 +833,9 @@
         flex-shrink: 0;
       }
 
-      .filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        padding: 14px;
-      }
-
-      .filter-group {
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
-      }
-
-      .filter-group label {
-        font-size: 0.82rem;
-      }
-
       select, button, input {
         width: 100%;
         min-width: 0;
-      }
-
-      #searchInput {
-        max-width: 100%;
       }
 
       table {
@@ -773,10 +849,6 @@
 
       .car-cell {
         max-width: 180px;
-      }
-
-      .track-stats-grid {
-        grid-template-columns: 1fr;
       }
 
       .stats {
@@ -1082,6 +1154,55 @@
       min-width: 0;
     }
 
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .quick-chip {
+      min-width: 0;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      max-width: none;
+      text-align: left;
+      line-height: 1.3;
+    }
+
+    .quick-chip:hover {
+      color: var(--accent-gold);
+      border-color: rgba(var(--accent-gold-rgb), 0.5);
+      background: rgba(var(--accent-gold-rgb), 0.08);
+    }
+
+    .quick-chip.active {
+      color: var(--accent-gold);
+      border-color: rgba(var(--accent-gold-rgb), 0.6);
+      background: rgba(var(--accent-gold-rgb), 0.15);
+      font-weight: 600;
+    }
+
+    .quick-chip-toggle {
+      border-style: dashed;
+      color: var(--text-tertiary);
+    }
+
+    .quick-chip-toggle:hover {
+      color: var(--accent-gold);
+      border-color: rgba(var(--accent-gold-rgb), 0.5);
+      background: rgba(var(--accent-gold-rgb), 0.08);
+    }
+
     .record-actions {
       display: flex;
       gap: 10px;
@@ -1148,16 +1269,19 @@
             <label for="rec-track">赛道 *</label>
             <input type="text" id="rec-track" list="rec-track-list" placeholder="如：Hirochi赛车场">
             <datalist id="rec-track-list"></datalist>
+            <div class="quick-chips" id="rec-track-chips"></div>
           </div>
           <div class="record-field">
             <label for="rec-layout">布局 *</label>
             <input type="text" id="rec-layout" list="rec-layout-list" placeholder="如：短途竞速环道">
             <datalist id="rec-layout-list"></datalist>
+            <div class="quick-chips" id="rec-layout-chips"></div>
           </div>
           <div class="record-field">
             <label for="rec-car">车辆 *</label>
             <input type="text" id="rec-car" list="rec-car-list" placeholder="如：Ibishu Covet Track (M)">
             <datalist id="rec-car-list"></datalist>
+            <div class="quick-chips" id="rec-car-chips"></div>
           </div>
           <div class="record-field">
             <label for="rec-time">圈速 *（MM:SS.mmm）</label>
@@ -1222,69 +1346,8 @@
 
     <div id="allTracksContent" class="track-content active">
       <div class="track-header">
-        <div class="track-name">综合排行榜</div>
-        <div class="track-layouts">跨赛道综合榜：排名为该车在所属赛道内的名次（跨赛道不混排绝对圈速）· 点击表头排序</div>
-      </div>
-
-      <div class="filters">
-        <div class="filter-group">
-          <label for="trackSelect">赛道</label>
-          <select id="trackSelect">
-            <option value="all">全部赛道</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="carSelect">车辆</label>
-          <select id="carSelect">
-            <option value="all">全部车辆</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="drivetrainSelect">驱动</label>
-          <select id="drivetrainSelect">
-            <option value="all">全部驱动</option>
-            <option value="前驱">前驱</option>
-            <option value="后驱">后驱</option>
-            <option value="四驱">四驱</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="layoutSelect">布局</label>
-          <select id="layoutSelect">
-            <option value="all">全部布局</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="powerTypeSelect">动力</label>
-          <select id="powerTypeSelect">
-            <option value="all">全部动力</option>
-            <option value="油车">油车</option>
-            <option value="电车">电车</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="modSelect">模组</label>
-          <select id="modSelect">
-            <option value="all">全部</option>
-            <option value="是">模组车辆</option>
-            <option value="否">原版车辆</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="versionSelect">版本</label>
-          <select id="versionSelect">
-            <option value="all">全部版本</option>
-          </select>
-        </div>
-
-        <input type="text" id="searchInput" placeholder="搜索车辆或赛道..." aria-label="搜索车辆或赛道" />
-        <button id="resetFilters">重置筛选</button>
+        <div class="track-name">赛道总览</div>
+        <div class="track-layouts">各赛道数据一览 · 点击卡片查看详细排名</div>
       </div>
 
       <div id="loading" class="loading">
@@ -1293,33 +1356,8 @@
 
       <div id="errorContainer" style="display: none;" role="alert"></div>
 
-      <div class="table-container">
-        <table id="allTracksTable">
-          <thead>
-            <tr>
-              <th data-sort="rank" class="sortable" scope="col" tabindex="0" title="该车在所属赛道内的排名（跨赛道不混排绝对圈速）">赛道内排名</th>
-              <th data-sort="car" class="sortable" scope="col" tabindex="0">车辆</th>
-              <th data-sort="track" class="sortable" scope="col" tabindex="0">赛道</th>
-              <th data-sort="layout" class="sortable" scope="col" tabindex="0">布局</th>
-              <th data-sort="time" class="sortable" scope="col" tabindex="0">圈速</th>
-              <th data-sort="power" class="sortable" scope="col" tabindex="0">马力</th>
-              <th data-sort="drivetrain" class="sortable" scope="col" tabindex="0">驱动</th>
-              <th data-sort="power_type" class="sortable" scope="col" tabindex="0">动力</th>
-              <th data-sort="control_type" class="sortable" scope="col" tabindex="0">控制</th>
-              <th data-sort="mod" class="sortable" scope="col" tabindex="0">模组</th>
-              <th data-sort="date" class="sortable" scope="col" tabindex="0">日期</th>
-            </tr>
-          </thead>
-          <tbody id="allTracksTableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="track-header" style="margin-top: 30px;">
-        <div class="track-name">各赛道统计</div>
-        <div class="track-layouts">点击卡片查看详细排名</div>
-      </div>
-
-      <div class="track-stats-grid" id="trackStatsGrid"></div>
+      <div class="dashboard-stats" id="dashboardStats"></div>
+      <div class="dashboard-grid" id="dashboardGrid"></div>
     </div>
 
     <div class="stats">

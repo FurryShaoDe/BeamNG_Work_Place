@@ -54,7 +54,53 @@
     });
   }
 
-  // 用已有数据填充赛道/布局/车辆联想（main.js 的 state 是全局词法环境变量，可直接访问）
+  // 快捷选择按钮：点击填入/取消，超出上限时提供展开全部
+  function fillChips(containerId, inputId, values, limit) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+    if (!container || !input) {
+      return;
+    }
+    const sorted = [...values].sort();
+    const render = (showAll) => {
+      container.innerHTML = '';
+      const shown = showAll ? sorted : sorted.slice(0, limit);
+      shown.forEach(value => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'quick-chip';
+        chip.textContent = value;
+        chip.title = value;
+        if (value === input.value) {
+          chip.classList.add('active');
+        }
+        chip.addEventListener('click', () => {
+          if (chip.classList.contains('active')) {
+            // 再次点击：取消选择
+            input.value = '';
+            chip.classList.remove('active');
+          } else {
+            input.value = value;
+            input.focus();
+            container.querySelectorAll('.quick-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+          }
+        });
+        container.appendChild(chip);
+      });
+      if (sorted.length > limit) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'quick-chip quick-chip-toggle';
+        toggleBtn.textContent = showAll ? `收起（${sorted.length}）` : `＋ 展开全部（${sorted.length}）`;
+        toggleBtn.addEventListener('click', () => render(!showAll));
+        container.appendChild(toggleBtn);
+      }
+    };
+    render(false);
+  }
+
+  // 用已有数据填充赛道/布局/车辆联想与快捷按钮（main.js 的 state 是全局词法环境变量，可直接访问）
   function fillDatalists() {
     const tracks = new Set();
     const layouts = new Set();
@@ -73,6 +119,9 @@
     fillDatalist(document.getElementById('rec-track-list'), tracks);
     fillDatalist(document.getElementById('rec-layout-list'), layouts);
     fillDatalist(document.getElementById('rec-car-list'), cars);
+    fillChips('rec-track-chips', 'rec-track', tracks, 5);
+    fillChips('rec-layout-chips', 'rec-layout', layouts, 5);
+    fillChips('rec-car-chips', 'rec-car', cars, 10);
   }
 
   function setDefaultDate() {
@@ -169,7 +218,23 @@
     }
     section.hidden = false;
     setDefaultDate();
-    fillDatalists();
+    // 数据由 main.js 异步加载，加载完成后会触发 lapDataLoaded 事件再填充联想
+    window.addEventListener('lapDataLoaded', fillDatalists);
+
+    // 输入框内容变化时同步快捷按钮高亮（值不匹配则取消高亮）
+    ['rec-track', 'rec-layout', 'rec-car'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', () => {
+          const container = document.getElementById(id + '-chips');
+          if (container) {
+            container.querySelectorAll('.quick-chip').forEach(c => {
+              c.classList.toggle('active', c.textContent === input.value);
+            });
+          }
+        });
+      }
+    });
 
     if (toggleBtn && form) {
       toggleBtn.addEventListener('click', () => {
