@@ -15,6 +15,7 @@
 
 ```
 BeamNG_Work_Place/
+├── 一键启动.bat             # 双击启动本地服务器并自动打开浏览器
 ├── Lap_Time_Leaderboard/   # 网页源码（GitHub Pages 部署目录）
 │   ├── index.html          # 主页
 │   ├── main.js             # 核心逻辑
@@ -29,7 +30,17 @@ BeamNG_Work_Place/
 
 ## 本地预览
 
-在 `Lap_Time_Leaderboard` 目录下启动本地服务：
+**最简单的方式：双击项目根目录的「一键启动.bat」**（需已安装 Python）。
+
+启动器会自动：
+
+1. 启动本地服务器（独立窗口运行，**关闭该窗口即停止服务**）
+2. 自动打开浏览器访问 http://localhost:8000
+
+如果服务器已在运行，再次双击会直接打开浏览器，不会重复启动。
+没装 Python 时会给出提示。
+
+也可以手动启动：
 
 ```bash
 cd Lap_Time_Leaderboard

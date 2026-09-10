@@ -51,6 +51,19 @@
 
   // ---------- 基础：变量读写 ----------
 
+  /** 归一化为 6 位小写 #rrggbb；3 位缩写自动展开，非法格式返回 null（应用时跳过） */
+  function normalizeHex(hex) {
+    const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex).trim());
+    if (!match) {
+      return null;
+    }
+    let body = match[1];
+    if (body.length === 3) {
+      body = body[0] + body[0] + body[1] + body[1] + body[2] + body[2];
+    }
+    return '#' + body.toLowerCase();
+  }
+
   function hexToRgb(hex) {
     const value = parseInt(hex.slice(1), 16);
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255].join(', ');
@@ -62,9 +75,13 @@
   }
 
   function applyItem(item, hex) {
-    root.style.setProperty(item.hexVar, hex);
+    const normalized = normalizeHex(hex);
+    if (!normalized) {
+      return;
+    }
+    root.style.setProperty(item.hexVar, normalized);
     if (item.rgbVar) {
-      root.style.setProperty(item.rgbVar, hexToRgb(hex));
+      root.style.setProperty(item.rgbVar, hexToRgb(normalized));
     }
   }
 

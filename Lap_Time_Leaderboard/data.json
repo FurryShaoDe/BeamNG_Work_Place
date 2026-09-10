@@ -258,5 +258,18 @@
     "power": 230,
     "date": "2026-1-15",
     "mod": "否"
+  },
+  {
+    "car": "Cherrier FCV Vivace 230S (DCT)",
+    "track": "纽博格林北环",
+    "layout": "Bridge-to-Gantry",
+    "time": "08:13.854",
+    "power_type": "油车",
+    "game_version": "0.39.4",
+    "control_type": "手柄",
+    "drivetrain": "前驱",
+    "power": 230,
+    "date": "2026-9-8",
+    "mod": "否"
   }
 ]

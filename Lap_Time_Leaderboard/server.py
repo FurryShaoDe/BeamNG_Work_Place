@@ -11,11 +11,13 @@ POST /api/records 接收一条成绩记录，校验后追加写入 data.json，
 import json
 import re
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DATA_FILE = ROOT / 'data.json'
+DATA_LOCK = threading.Lock()
 
 TIME_RE = re.compile(r'^\d{1,2}:\d{2}\.\d{3}$')
 REQUIRED_FIELDS = [
@@ -76,8 +78,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_static(self, path):
         # 防目录穿越：解析后必须仍在站点根目录内
+        # （不能用 startswith 前缀判断，否则 Lap_Time_Leaderboard_backup 这类
+        #   以站点目录名为前缀的兄弟目录会被放行）
         target = (ROOT / path.lstrip('/')).resolve()
-        if not str(target).startswith(str(ROOT)):
+        try:
+            target.relative_to(ROOT)
+        except ValueError:
             self.send_error(403)
             return
         if target.is_dir():
@@ -120,9 +126,10 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            records = load_records()
-            records.append(rec)
-            save_records(records)
+            with DATA_LOCK:
+                records = load_records()
+                records.append(rec)
+                save_records(records)
         except Exception as e:
             self._send_json(500, {'ok': False, 'error': '写入失败: %s' % e})
             return
@@ -135,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    server = ThreadingHTTPServer(('0.0.0.0', port), Handler)
+    server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     print('圈速榜本地服务器已启动: http://localhost:%d （Ctrl+C 停止）' % port)
     try:
         server.serve_forever()
