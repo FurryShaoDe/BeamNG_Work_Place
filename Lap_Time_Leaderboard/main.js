@@ -280,12 +280,11 @@ function generateTrackPages() {
       if (!key) {
         return;
       }
-      const sortState = state.sortState[trackId] || (state.sortState[trackId] = { key: 'rank', dir: 'asc' });
-      if (sortState.key === key) {
+      let sortState = state.sortState[trackId];
+      if (sortState && sortState.key === key) {
         sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
       } else {
-        sortState.key = key;
-        sortState.dir = 'asc';
+        sortState = state.sortState[trackId] = { key, dir: 'asc' };
       }
       renderTrackTable(track, data);
       updateSortArrows(content, sortState);
