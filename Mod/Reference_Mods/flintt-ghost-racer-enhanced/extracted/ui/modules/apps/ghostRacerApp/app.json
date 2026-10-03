@@ -1,0 +1,10 @@
+{
+  "domElement": "<ghost-racer-app></ghost-racer-app>",
+  "name": "Ghost Racer Enhanced",
+  "description": "Record and race multiple low-overhead ghosts with live deltas, telemetry trails, and Ghost camera views.",
+  "css": { "width": "310px", "height": "520px", "top": "35px", "right": "12px" },
+  "author": "flintt; based on Ghost Racer Replay by Jesus Goose",
+  "version": "2.19.8",
+  "directive": "ghostRacerApp",
+  "preserveAspectRatio": false
+}

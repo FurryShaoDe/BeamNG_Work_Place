@@ -1,0 +1,246 @@
+/* LapLog UI panel. Dark, compact, and readable at a glance while driving. */
+
+/* Two boxes, two jobs:
+   - <lap-log-app> is the directive element BeamNG compiles into the HUD slot,
+     so it only has to fill that slot.
+   - .ll-app is the template root (app.html). It must NOT be the directive
+     element: a template with the same root element re-matches the directive
+     and nests itself forever, wedging the UI thread. Keep them distinct. */
+lap-log-app {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ll-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(14, 17, 21, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #e6e9ee;
+  font-family: "Roboto", "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ll-app * { box-sizing: border-box; }
+
+.ll-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ll-title { font-weight: 600; letter-spacing: 0.04em; flex: 1; }
+.ll-title small { color: #8d97a5; font-weight: 400; margin-left: 6px; }
+
+.ll-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7280;
+  flex: 0 0 auto;
+}
+.ll-dot.is-recording { background: #ff4438; box-shadow: 0 0 8px rgba(255, 68, 56, 0.8); }
+.ll-dot.is-armed { background: #ffb020; }
+.ll-dot.is-ready { background: #35c759; }
+
+.ll-icon-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: #cfd6e0;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 7px;
+}
+.ll-icon-btn:hover { background: rgba(255, 255, 255, 0.09); }
+.ll-icon-btn:disabled { opacity: 0.35; cursor: default; }
+.ll-icon-btn.is-danger:hover { background: rgba(255, 68, 56, 0.22); border-color: #ff4438; }
+
+/* Flex instead of a hardcoded head height, so the list keeps its own scroll
+   whatever the header wraps to. */
+.ll-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 8px 10px 14px; }
+
+.ll-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9aa4b2;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.ll-status b { color: #e6e9ee; font-weight: 600; }
+
+.ll-message {
+  color: #cbd3df;
+  font-size: 12px;
+  min-height: 18px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.ll-section { margin-bottom: 12px; }
+.ll-section-title {
+  color: #8d97a5;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ll-row { display: flex; gap: 6px; align-items: center; }
+.ll-row + .ll-row { margin-top: 6px; }
+
+.ll-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: #e6e9ee;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.ll-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.ll-btn:disabled { opacity: 0.35; cursor: default; }
+.ll-btn.is-primary { background: rgba(53, 199, 89, 0.2); border-color: rgba(53, 199, 89, 0.55); }
+.ll-btn.is-primary:hover:not(:disabled) { background: rgba(53, 199, 89, 0.32); }
+.ll-btn.is-recording { background: rgba(255, 68, 56, 0.22); border-color: rgba(255, 68, 56, 0.6); }
+.ll-btn.is-on { background: rgba(255, 176, 32, 0.22); border-color: rgba(255, 176, 32, 0.6); }
+
+.ll-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  color: #cbd3df;
+  font-size: 12px;
+}
+.ll-setting input[type="checkbox"] { accent-color: #35c759; cursor: pointer; }
+.ll-setting.is-disabled { opacity: 0.4; }
+.ll-setting .ll-hint { margin-left: auto; color: #7d8796; font-size: 11px; }
+
+.ll-select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: #e6e9ee;
+  font-size: 12px;
+  padding: 5px 6px;
+}
+
+/* ---- custom dropdown -------------------------------------------------------
+   A native <select> popup cannot open under CEF's off-screen rendering, so
+   this panel uses a button plus a menu instead (same approach as Ghost Racer).
+   The menu is laid out in-flow: an absolutely positioned popup would be clipped
+   by the body's scroll container. */
+.ll-custom-select { display: block; flex: 1; min-width: 0; }
+
+.ll-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: #e6e9ee;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 6px;
+  text-align: left;
+}
+.ll-select-trigger:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.ll-select-trigger:disabled { opacity: 0.35; cursor: default; }
+
+.ll-custom-select.is-open .ll-select-trigger {
+  border-color: rgba(53, 199, 89, 0.55);
+  background: rgba(53, 199, 89, 0.12);
+}
+
+.ll-chevron {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #9aa4b2;
+}
+.ll-custom-select.is-open .ll-chevron { transform: rotate(180deg); }
+
+.ll-select-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 3px;
+  padding: 3px;
+  max-height: 170px;
+  overflow-y: auto;
+  background: #10141a;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.ll-select-option {
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: #e6e9ee;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 7px;
+  text-align: left;
+}
+.ll-select-option:hover { background: rgba(255, 255, 255, 0.1); }
+.ll-select-option.is-selected { background: rgba(53, 199, 89, 0.18); color: #7de29f; }
+
+.ll-lap-list { display: flex; flex-direction: column; gap: 4px; }
+
+.ll-lap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: 3px solid #4b5563;
+  border-radius: 4px;
+  padding: 5px 7px;
+}
+.ll-lap.is-reference { border-left-color: #35c759; background: rgba(53, 199, 89, 0.1); }
+.ll-lap.is-partial { border-left-color: #ffb020; }
+.ll-lap.is-manual { border-left-color: #7aa2ff; }
+.ll-lap.is-pinned { border-left-color: #c084fc; }
+
+.ll-lap-main { flex: 1; min-width: 0; }
+.ll-lap-label { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ll-lap-sub { color: #8d97a5; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ll-lap-time { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+.ll-lap-time.is-pb { color: #35c759; }
+
+.ll-empty { color: #7d8796; font-size: 12px; padding: 6px 2px; }
+
+.ll-note { color: #7d8796; font-size: 11px; margin-top: 5px; }
+
+.ll-danger-zone { border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 12px; padding-top: 10px; }
+
+@media (max-width: 360px) {
+  .ll-lap-time { font-size: 12px; }
+}

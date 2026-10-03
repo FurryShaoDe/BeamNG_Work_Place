@@ -1,0 +1,58 @@
+{
+  "ghostracer_set_start": {
+    "title": "Ghost Racer: Set / restart lap start",
+    "desc": "Place the start/finish gate at the current position and start a lap (free roam)",
+    "cat": "gameplay",
+    "order": 900,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeySetStartLine then extensions.ghostlapping.hotkeySetStartLine() end"
+  },
+  "ghostracer_toggle_auto_lap": {
+    "title": "Ghost Racer: Toggle auto lap",
+    "desc": "Arm or disarm free-roam automatic lap recording at the current start",
+    "cat": "gameplay",
+    "order": 901,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeyToggleAutoLap then extensions.ghostlapping.hotkeyToggleAutoLap() end"
+  },
+  "ghostracer_clear_start": {
+    "title": "Ghost Racer: Clear lap start",
+    "desc": "Deactivate the current start's live functions (its Ghost library is kept)",
+    "cat": "gameplay",
+    "order": 902,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeyClearStartLine then extensions.ghostlapping.hotkeyClearStartLine() end"
+  },
+  "ghostracer_set_finish": {
+    "title": "Ghost Racer: Set finish gate (point-to-point)",
+    "desc": "Place a finish gate at the current position, making the start a point-to-point run",
+    "cat": "gameplay",
+    "order": 903,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeySetFinishLine then extensions.ghostlapping.hotkeySetFinishLine() end"
+  },
+  "ghostracer_clear_finish": {
+    "title": "Ghost Racer: Clear finish gate",
+    "desc": "Remove the finish gate, returning the start to a circuit lap",
+    "cat": "gameplay",
+    "order": 904,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeyClearFinishLine then extensions.ghostlapping.hotkeyClearFinishLine() end"
+  },
+  "ghostracer_new_variant": {
+    "title": "Ghost Racer: New track variant",
+    "desc": "Add another track (separate ghost library) at the current start position",
+    "cat": "gameplay",
+    "order": 905,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeyCreateStartVariant then extensions.ghostlapping.hotkeyCreateStartVariant() end"
+  },
+  "ghostracer_toggle_ui_mini": {
+    "title": "Ghost Racer: Toggle app mini / full size",
+    "desc": "Toggle the Ghost Racer app between its full panel and the compact mini badge",
+    "cat": "gameplay",
+    "order": 906,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.ghostlapping and extensions.ghostlapping.hotkeyToggleMinimize then extensions.ghostlapping.hotkeyToggleMinimize() end"
+  }
+}

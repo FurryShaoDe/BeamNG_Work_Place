@@ -1,0 +1,233 @@
+{
+    "attachments": [
+        {
+            "data_filename": "1329842.jpg",
+            "original_filename": "BeamNGdrivex64_2026_08_23_DESKTOP-A5J02C2_44vdCMqV7s.jpg",
+            "thumb_filename": "thumbs\/1329842.jpg"
+        },
+        {
+            "data_filename": "1329844.jpg",
+            "original_filename": "Ghostcarview.jpg",
+            "thumb_filename": "thumbs\/1329844.jpg"
+        },
+        {
+            "data_filename": "1329845.jpg",
+            "original_filename": "Ghostreplay.jpg",
+            "thumb_filename": "thumbs\/1329845.jpg"
+        }
+    ],
+    "resource_id": 39196,
+    "current_version_id": 72419,
+    "download_count": 0,
+    "resource_version_id": 72557,
+    "version_string": "2.19.8",
+    "last_update": 1788774431,
+    "rating_avg": 4.66667,
+    "rating_count": 0,
+    "rating_sum": 0,
+    "resource_category_id": 10,
+    "resource_date": 1787649864,
+    "review_count": 6,
+    "tag_line": "Ghost Racer Enhanced is a lap ghost, live comparison, and practice mod for BeamNG.drive. It records",
+    "update_count": 4,
+    "path": "MDSJ9FGY3\/72419\/",
+    "filename": "flintt-ghost-racer-enhanced.zip",
+    "title": "Ghost Racer Enhanced",
+    "user_id": 742031,
+    "username": "flintt",
+    "tagid": "MDSJ9FGY3",
+    "message": "[SIZE=6][B]Ghost Racer Enhanced[\/B][\/SIZE]\n[ATTACH]1329853[\/ATTACH]\n\n[ATTACH]1329842[\/ATTACH]\n\nGhost Racer Enhanced is a lap ghost, live comparison, and practice mod for BeamNG.drive. It records your driving line and lap time so you can race your previous runs, see where time is gained or lost, and learn a faster line.\n\nIt is designed for circuit practice, free-roam loops, Hotlapping, and Time Trials. A Ghost is a lightweight visual replay rather than a second physical vehicle, so it does not participate in collisions or BeamNG's soft-body simulation.\n\nThis project is an enhanced version of [B]Ghost Racer Replay 1.6[\/B] by [B]Jesus Goose[\/B]. Please visit the original [URL='https:\/\/www.beamng.com\/resources\/ghost-racer-replay.38554\/']BeamNG Resources page[\/URL] and [URL='https:\/\/www.beamng.com\/threads\/ghost-racer-replay.108045\/']BeamNG forum release\/discussion thread[\/URL]. Many thanks to the original author for providing the foundation for this project.\n\n[SIZE=5][B]Galleries[\/B][\/SIZE]\n[SIZE=4][MEDIA=youtube]UEWNiPPLsMw[\/MEDIA][\/SIZE]\n[SIZE=5][B][\/B]\n[B][\/B][\/SIZE]\nGhost car chase view\n[ATTACH]1329844[\/ATTACH]\n\nGhost replay\n[ATTACH]1329845[\/ATTACH]\n\nMini UI\n[ATTACH]1329846[\/ATTACH]\n\nUI autolap\n[ATTACH]1329847[\/ATTACH]\n\nUI ghost display\n[ATTACH]1329849[\/ATTACH]\n\nUI config\n[ATTACH]1329848[\/ATTACH]\n\n[SIZE=5][B]Highlights[\/B][\/SIZE]\n[LIST]\n[*]Place a directed start\/finish gate in free roam and record consecutive laps automatically.\n\n\n[*]Compare live time delta \u0394t and speed delta \u0394v at the same point on the route.\n\n\n[*]Store up to 20 laps and display the best lap, Top N, one specified lap, selected laps, or every Ghost.\n\n\n[*]Color Ghost trails by absolute speed or by acceleration and braking.\n\n\n[*]Display a full best-lap racing line, route ribbon, and generated checkpoints.\n\n\n[*]Switch between the driving camera and Ghost Chase \/ Onboard views.\n\n\n[*]Save and name multiple starts, then restore them after changing vehicles or restarting the game.\n\n\n[*]Share PBs and Ghosts between vehicles at the same saved start while retaining the source vehicle for every lap.\n\n\n[*]Integrate automatically with BeamNG Hotlapping and Time Trials. (WIP)\n\n\n[*]Use either the full HUD or a compact circular race display.\n[\/LIST]\n[SIZE=5][B]Installation[\/B][\/SIZE]\n[LIST=1]\n[*]Disable the original Ghost Racer Replay if it is installed. The original and enhanced versions cannot be enabled together.\n\n\n[*]Remove or move older ghost-racer-enhanced-*.zip files so multiple versions do not overwrite one another.\n\n\n[*]Copy dist\/ghost-racer-enhanced-2.9.9.zip into the mods folder in your BeamNG user directory.\n\n\n[*]Enter a map, open [B]UI Apps[\/B], and add [B]Ghost Racer Enhanced[\/B].\n[\/LIST]\nAfter replacing the ZIP, you can usually press Ctrl+L to reload Lua and then F5 to refresh the UI instead of restarting immediately. The UI and Controller versions shown in the HUD title should match.\n\n[SIZE=5][B]Your first lap[\/B][\/SIZE]\n[SIZE=4][B]Automatic free-roam laps[\/B][\/SIZE]\n[LIST=1]\n[*]Stop where you want the start\/finish gate and point the car in the normal lap direction.\n\n\n[*]Click [B]Set & start lap[\/B].\n\n\n[*]Lap 1 begins recording immediately. There is no Ghost yet because no completed reference exists.\n\n\n[*]Drive a full lap and cross the start in the correct direction to save Lap 1.\n\n\n[*]Lap 2 starts automatically and the newly completed Ghost launches with it.\n[\/LIST]\nWhen you return to the map, choose the previous location from [B]Saved Start[\/B]. A start with existing Ghosts becomes armed, and the next valid crossing begins recording and playback.\n\n[SIZE=4][B]Manual recording[\/B][\/SIZE]\nWhen automatic laps are not needed, click [B]Record[\/B] to start or stop a recording, then use [B]Play ghost[\/B] to replay it manually. This is useful for short routes, drift lines, and open roads that do not form a loop.\n\n[SIZE=5][B]Ghost display modes[\/B][\/SIZE]\n[LIST]\n[*][B]Dynamic best[\/B]: always display the fastest available lap.\n\n\n[*][B]Top N ghosts[\/B]: display the fastest 2, 3, 5, or 10 laps together.\n\n\n[*][B]Specified ghost[\/B]: display one chosen lap.\n\n\n[*][B]Selected ghosts[\/B]: display several manually selected laps.\n\n\n[*][B]All ghosts[\/B]: display every stored lap; consider lowering quality when many Ghosts are visible.\n[\/LIST]\nUse VIEW on a lap row to follow that Ghost, then click [B]DRIVER VIEW[\/B] to return to the player vehicle. A Ghost is not a physical vehicle, so it cannot be selected with Tab.\n\n[SIZE=5][B]Racing lines and trails[\/B][\/SIZE]\nThe following options are available in Settings:\n\n[LIST]\n[*][B]Show ghost trail[\/B]: display a short telemetry trail behind each visible Ghost.\n\n\n[*][B]Show best lap racing line[\/B]: display the complete best-lap line.\n\n\n[*][B]Absolute speed[\/B]: color the line by speed.\n\n\n[*][B]Acceleration \/ braking[\/B]: color acceleration, steady speed, and braking separately.\n\n\n[*][B]Automatic route guide[\/B]: build a route ribbon and checkpoints from the reference lap.\n[\/LIST]\nThe route guide tries to follow mapped roads. Custom circuits and areas without navigation-road data may fall back to the original Ghost path. This does not affect recording, lap detection, or playback.\n\n[SIZE=5][B]Saved starts and vehicle changes[\/B][\/SIZE]\nSaved starts belong to the map rather than one vehicle. Changing cars keeps the start, PB, and Ghost library available, and every lap shows which vehicle originally recorded it.\n\nWhen upgrading from an older release, activating a saved start automatically merges records that were previously stored in separate vehicle folders. The old files remain as recovery copies, and repeated vehicle changes do not import the same lap again.\n\nSaved starts can be renamed, deactivated, or permanently deleted. Permanent deletion requires pressing DEL and then CONFIRM within the confirmation window to protect the entire lap library from accidental removal.\n\n[SIZE=5][B]Frequently asked questions[\/B][\/SIZE]\n[SIZE=4][B]Why is there no Ghost on Lap 1?[\/B][\/SIZE]\nA Ghost must come from a completed lap. The first lap after creating a start records the reference, and it appears automatically when Lap 2 begins.\n\n[SIZE=4][B]Why was my finish crossing not counted?[\/B][\/SIZE]\nCheck that you crossed in the correct direction and between the start-gate pillars. Very short laps, reverse crossings, vehicle resets, and teleport-sized position jumps are rejected. The HUD and BeamNG notice explain the rejection reason.\n\n[SIZE=4][B]Why does the generated route not follow the road center?[\/B][\/SIZE]\nRoad matching depends on navigation data supplied by the map. Mesh circuits, off-road surfaces, and some custom maps do not provide that data, so the guide uses the recorded Ghost path instead.\n\n[SIZE=4][B]Why does a Ghost look different from the vehicle that recorded it?[\/B][\/SIZE]\nFor a cross-vehicle replay, position and timing come from the original lap, while the wireframe uses the active vehicle's compatible structure.\n\n[SIZE=4][B]Why is the UI still present after disabling the mod?[\/B][\/SIZE]\nDisable or remove the mod through BeamNG's Mod Manager. Ghost Racer removes its saved layout entry when the UI reloads. After enabling it again, add the app from [B]UI Apps[\/B] once more.\n\n[SIZE=5][B]Compatibility and limitations[\/B][\/SIZE]\n[LIST]\n[*]Currently developed for BeamNG.drive 0.39.\n\n\n[*]Reads legacy Ghost Racer Replay 1.2 and 1.6 recordings.\n\n\n[*]Legacy files do not contain speed telemetry, so some line data may be unavailable.\n\n\n[*]Ghosts do not reproduce suspension movement, body deformation, or collisions.\n\n\n[*]Crossings, overpasses, and branching routes can occasionally confuse live route-position matching for a moment.\n[\/LIST]\n\n[B]AI-assisted development disclosure[\/B]\n\nDevelopment of Ghost Racer Enhanced\u2014including feature work, refactoring, tests, and documentation\u2014was assisted by [B]OpenAI Codex using GPT-5.6 Sol at xhigh reasoning effort[\/B]. AI assistance included analyzing existing code, proposing implementations, generating and editing code, helping diagnose issues, extending tests, and drafting documentation.\n\nProject author [B]flintt[\/B] supplied the requirements, selected design decisions, reviewed and accepted changes, performed in-game validation, and remains responsible for the content included in each release. The AI service is disclosed as a development tool and is not credited as a project author or copyright owner.\n\n[SIZE=5][B]Credits[\/B][\/SIZE]\nGhost Racer Enhanced is a community enhancement of Ghost Racer Replay:\n\n[LIST]\n[*][URL='https:\/\/www.beamng.com\/resources\/ghost-racer-replay.38554\/']Ghost Racer Replay \u2014 BeamNG Resources[\/URL]\n\n\n[*][URL='https:\/\/www.beamng.com\/threads\/ghost-racer-replay.108045\/']Ghost Racer Replay \u2014 BeamNG Forums[\/URL]\n[\/LIST]",
+    "category_title": "",
+    "prefix_title": "",
+    "via": "packed by repo on Wed, 09 Sep 2026 10:02:39 GMT",
+    "hashes": [
+        [
+            "scripts\/bng_ghost\/modScript.lua",
+            "4e36804cc0ff12ff"
+        ],
+        [
+            "THIRD_PARTY_NOTICES.md",
+            "918122044781f03d"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/wireframeRenderer.lua",
+            "967d1a465b826c4f"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/displayState.lua",
+            "dd8cd290936a41c8"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/recordingState.lua",
+            "86fafad93b15e4d8"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/runtimeContext.lua",
+            "833cec6375fd3784"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/startRegistry.lua",
+            "c0fd8dc185d7d7c7"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/pose.lua",
+            "0f582e59d07a1827"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/shareCodec.lua",
+            "7a50a3c22efe7a7c"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/startState.lua",
+            "4e91de4e250a0651"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/routeGuide.lua",
+            "15883c0f9d144a08"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/uiStateBuilder.lua",
+            "8ffde19bfd92213e"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/trailRenderer.lua",
+            "002ab4b4454d6dfa"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/shareManager.lua",
+            "50ef789955337220"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/shellSync.lua",
+            "815828ac3a2c63d0"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/sessionCoordinator.lua",
+            "989e8b9516c9a010"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/uiRuntimeState.lua",
+            "d9d0dce4ca4e1fe4"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/playbackState.lua",
+            "65729d8a1654becc"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/sessionState.lua",
+            "5d0f9f81712d8d4a"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/replayCodec.lua",
+            "30d29e9561847c34"
+        ],
+        [
+            "lua\/vehicle\/ghostRacer\/progressMatcher.lua",
+            "a4746a6459610d85"
+        ],
+        [
+            "lua\/vehicle\/controller\/ghostRacer.lua",
+            "fbcf325625e8a9ce"
+        ],
+        [
+            "lua\/vehicle\/extensions\/auto\/ghostRacerStart.lua",
+            "5ef6cdaa978f62d7"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/runtimeContext.lua",
+            "bf723e813c450a4c"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/cameraBackend.lua",
+            "a75d851a8de50135"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/shellTSStaticBackend.lua",
+            "053d380b72fbf1dd"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/timeTrialState.lua",
+            "4d226b017efcc7f4"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/raceState.lua",
+            "2d64fb99668b244b"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/shellRenderer.lua",
+            "4caa5e1c37ec2e80"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/worldRenderer.lua",
+            "b5a49f61cd6a1939"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/uiLifecycleState.lua",
+            "ba01cb097f2e02bc"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/shellVehicleBackend.lua",
+            "afec1cd8ad8bb635"
+        ],
+        [
+            "lua\/ge\/ghostRacer\/lifecycleCoordinator.lua",
+            "7d5b33e54429db2c"
+        ],
+        [
+            "lua\/ge\/extensions\/ghostlapping.lua",
+            "8ae4bf6d275d31bc"
+        ],
+        [
+            "lua\/ge\/extensions\/ghostRecord.lua",
+            "289879b26f723fae"
+        ],
+        [
+            "lua\/ge\/extensions\/core\/input\/actions\/ghostRacer.json",
+            "3d2febbc4f6a0654"
+        ],
+        [
+            "AI_DISCLOSURE.md",
+            "fcc3a76b9a485c55"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/icon.png",
+            "a1b23d90122f2055"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/app.js",
+            "cf2844f69bd49426"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/app.css",
+            "de1c7c089ece1734"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/app.png",
+            "793f0126ca5ad770"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/app.html",
+            "0f79a4d0097fe875"
+        ],
+        [
+            "ui\/modules\/apps\/ghostRacerApp\/app.json",
+            "b2e4f3272feea23c"
+        ],
+        [
+            "README.md",
+            "ae87ed3432ef37da"
+        ],
+        [
+            "LICENSE",
+            "420775825b2b76b0"
+        ],
+        [
+            "README.en.md",
+            "1d0aeaa6576951cd"
+        ],
+        [
+            "CHANGELOG.md",
+            "cbeeceddac01e8b8"
+        ]
+    ]
+}

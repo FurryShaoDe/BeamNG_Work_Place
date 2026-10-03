@@ -1,0 +1,838 @@
+<div class="bngApp bngAppInteractive ghost-racer" ng-class="{ 'is-minimized': minimized }">
+  <!--
+    This Source Code Form is subject to the terms of the bCDDL, v. 1.1.
+    Original Ghost Racer Replay by Jesus Goose.
+    UI modifications by flintt, 2026.
+  -->
+  <link rel="stylesheet" href="/ui/modules/apps/ghostRacerApp/app.css?v=2.19.8">
+
+  <button type="button" class="gr-mini" ng-if="minimized"
+          ng-click="toggleMinimize()" title="{{ miniStatusDescription() }} · Click to expand">
+    <span class="gr-mini-ring" ng-style="miniRingStyle()">
+      <span class="gr-mini-core">
+        <small>{{ miniLabel() }}</small>
+        <strong ng-class="timeDeltaClass()">{{ miniPrimary() }}</strong>
+        <em>{{ miniUnit() }}</em>
+      </span>
+    </span>
+    <span class="gr-mini-live" ng-class="'status-' + state.status"></span>
+    <span class="gr-mini-rank" ng-if="hasLiveRank()"
+          title="Live position / cars on track">{{ miniRankText() }}</span>
+  </button>
+
+  <header class="gr-header" ng-if="!minimized">
+    <div class="gr-brand" ng-click="minimized && toggleMinimize()">
+      <span class="gr-mark" ng-class="'status-' + state.status"></span>
+      <span class="gr-title">GHOST RACER</span>
+      <span class="gr-version"
+            title="UI {{ appVersion }}{{ state.codeVersion ? ' / controller ' + state.codeVersion : '' }}">
+        v{{ appVersion }}<span ng-if="state.codeVersion"> / c{{ state.codeVersion }}</span>
+      </span>
+      <span class="gr-status">{{ statusLabel() }}</span>
+    </div>
+    <button class="gr-icon-button" type="button" ng-click="toggleMinimize()"
+            title="{{ minimized ? 'Expand' : 'Minimize' }}">
+      {{ minimized ? '+' : '−' }}
+    </button>
+  </header>
+
+  <div class="gr-body" ng-if="!minimized" bng-nav-scroll tabindex="0">
+    <section class="gr-delta-grid">
+      <div class="gr-metric gr-metric-main" title="Time difference at the same track position">
+        <span class="gr-label">DELTA</span>
+        <strong ng-class="timeDeltaClass()">{{ formatTime(state.timeDelta, true) }}</strong>
+        <small>s</small>
+      </div>
+      <div class="gr-metric" title="Speed difference at the same track position">
+        <span class="gr-label">SPEED Δ</span>
+        <strong ng-class="speedDeltaClass()">{{ formatSpeedDelta(state.speedDelta) }}</strong>
+        <small>km/h</small>
+      </div>
+      <div class="gr-metric">
+        <span class="gr-label">PERSONAL BEST</span>
+        <strong>{{ formatTime(state.pbTime, false) }}</strong>
+        <small>{{ state.pbTime != null ? 's' : '' }}</small>
+      </div>
+      <div class="gr-metric" title="Your live position among all stored ghosts (completed and incomplete), by time to your current track position">
+        <span class="gr-label">RANK</span>
+        <strong>{{ rankText() }}</strong>
+        <small>{{ rankTotalText() }}</small>
+      </div>
+    </section>
+
+    <div class="gr-progress-caption">
+      <span>GHOST PLAYBACK</span>
+      <b ng-if="state.playing">{{ ((state.progress || 0) * 100) | number:0 }}%</b>
+    </div>
+    <div class="gr-progress" ng-class="{ 'is-active': state.playing }"
+         title="Ghost playback time progress; this is not current vehicle lap progress">
+      <span ng-style="{ width: ((state.progress || 0) * 100) + '%' }"></span>
+    </div>
+
+    <div class="gr-telemetry">
+      <span><b>{{ (state.currentSpeed || 0) | number:0 }}</b> km/h</span>
+      <span><b>{{ (state.sampleCount || 0) | number:0 }}</b> samples</span>
+      <span title="{{ state.message }}">{{ state.message }}</span>
+    </div>
+
+    <section class="gr-auto-lap"
+             ng-class="{ 'is-enabled': state.autoLapEnabled, 'is-active': state.autoLapActive }">
+      <div class="gr-auto-head">
+        <span>AUTO LAP</span>
+        <b>
+          {{ autoLapStatusLabel() }}
+        </b>
+      </div>
+      <div class="gr-lap-result" ng-if="state.lastLapTime != null">
+        <span>
+          <small>LAST LAP</small>
+          <strong>{{ formatTime(state.lastLapTime, false) }} s</strong>
+        </span>
+        <span ng-if="state.lastLapRank != null">
+          <small>RECORD RANK</small>
+          <strong>#{{ state.lastLapRank }} / {{ state.lastLapRecordCount }}</strong>
+          <em ng-if="state.lastLapStored === false">NOT SAVED</em>
+        </span>
+      </div>
+      <div class="gr-auto-actions">
+        <button type="button" ng-click="setStartLine()" ng-disabled="state.raceMode">
+          {{ state.startLineSet ? 'Restart lap' : 'Set & start lap' }}
+        </button>
+        <button type="button" class="gr-auto-toggle"
+                ng-class="{ 'is-enabled': state.autoLapEnabled }"
+                ng-click="toggleAutoLap()"
+                ng-disabled="state.raceMode || !state.startLineSet">
+          {{ state.autoLapEnabled ? 'Auto armed' : 'Arm auto lap' }}
+        </button>
+        <button type="button" class="gr-auto-finish"
+                ng-class="{ 'is-enabled': state.finishLineSet }"
+                title="{{ state.finishLineSet ? 'Point-to-point ON · click to clear the finish gate' : 'Set a finish gate here (point-to-point)' }}"
+                ng-click="toggleFinishLine()" ng-disabled="!state.startLineSet || state.raceMode">⚑</button>
+        <button type="button" class="gr-auto-clear"
+                title="Deactivate current start; saved start and Ghost laps are kept"
+                ng-click="clearStartLine()" ng-disabled="!state.startLineSet || state.raceMode">×</button>
+        <button type="button" class="gr-auto-visibility"
+                title="{{ settings.showStartGate ? 'Hide start gate markers' : 'Show start gate markers' }}"
+                ng-click="toggleStartGate()" ng-disabled="!state.startLineSet">
+          {{ settings.showStartGate ? '◉' : '○' }}
+        </button>
+      </div>
+      <div class="gr-start-profile" ng-if="state.savedStartLines.length">
+        <div class="gr-start-profile-head">
+          <span>{{ state.raceMode ? 'TIME TRIAL START' : 'SAVED START' }}</span>
+          <b>{{ state.raceMode ? 'AUTO' : state.savedStartLines.length + '/20' }}</b>
+        </div>
+        <div class="gr-custom-select gr-start-select"
+             ng-class="{ 'is-open': openOptionMenu === 'savedStart' }">
+          <button type="button" class="gr-select-trigger"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'savedStart' }}"
+                  ng-click="toggleOptionMenu('savedStart', $event)" ng-disabled="state.raceMode">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ activeStartGroupLabel() }}</strong>
+                <small>{{ state.activeStartLineId || 'no ID' }} · {{ state.startIdentitySource || (state.raceMode ? 'BeamNG activity' : 'manual map start') }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'savedStart'">
+            <button type="button" role="option"
+                    ng-repeat="group in startGroups() track by group.startKey"
+                    ng-class="{ 'is-selected': group.active }"
+                    ng-click="selectStartGroup(group, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ group.name }}</strong>
+                <small>
+                  {{ group.startKey }} ·
+                  <span ng-if="group.count > 1">{{ group.count }} tracks</span><span ng-if="group.count <= 1">1 track</span>
+                </small>
+              </span>
+              <em class="gr-option-status">{{ group.active ? 'CURRENT' : '' }}</em>
+            </button>
+          </div>
+        </div>
+
+        <div class="gr-custom-select gr-track-select"
+             ng-if="hasTrackVariants() && !state.raceMode"
+             ng-class="{ 'is-open': openOptionMenu === 'trackVariant' }">
+          <button type="button" class="gr-select-trigger"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'trackVariant' }}"
+                  ng-click="toggleOptionMenu('trackVariant', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ savedStartLabel() }}</strong>
+                <small>TRACK · {{ activeTracks().length }} variants at this start</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'trackVariant'">
+            <button type="button" role="option"
+                    ng-repeat="line in activeTracks() track by line.id"
+                    ng-class="{ 'is-selected': line.id === state.activeStartLineId }"
+                    ng-click="selectSavedStart(line, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ line.name }}</strong>
+                <small>
+                  {{ line.ghostCount }} complete<span ng-if="line.incompleteGhostCount"> + {{ line.incompleteGhostCount }} partial</span> ·
+                  {{ line.pbTime != null ? formatTime(line.pbTime, false) + ' s' : 'no PB' }}
+                </small>
+              </span>
+              <em class="gr-option-status">{{ line.id === state.activeStartLineId ? 'CURRENT' : '' }}</em>
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="gr-variant-button"
+                ng-if="state.startLineSet && !state.raceMode"
+                ng-click="newStartVariant()"
+                title="Add another track (a separate ghost library and finish) at this same start position">
+          + New track variant here
+        </button>
+        <form class="gr-start-name" ng-if="state.startLineSet && !state.raceMode"
+              ng-submit="renameStartLine($event)">
+          <input type="text" maxlength="32" ng-model="startLineNameDraft"
+                 ng-focus="beginStartLineNameEdit()" ng-mousedown="beginStartLineNameEdit()"
+                 ng-change="beginStartLineNameEdit()" ng-blur="endStartLineNameEdit()"
+                 aria-label="Start line name" placeholder="Name this map start">
+          <button type="button" ng-click="renameStartLine($event)">Rename</button>
+          <button type="button" class="gr-start-delete"
+                  ng-class="{ 'is-armed': pendingStartDeleteId === state.activeStartLineId }"
+                  ng-click="requestDeleteSavedStart($event)"
+                  title="{{ pendingStartDeleteId === state.activeStartLineId ? 'Click again to delete this map start and its Ghost laps for every vehicle' : 'Delete this map start and its Ghost laps for every vehicle' }}">
+            {{ pendingStartDeleteId === state.activeStartLineId ? 'CONFIRM' : 'DEL' }}
+          </button>
+        </form>
+      </div>
+      <small ng-if="!state.raceMode">
+        Set & start records lap 1 immediately. Restored or selected starts arm automatically;
+        the next directed crossing starts lap 1 and launches saved ghosts.
+      </small>
+      <small ng-if="state.raceMode">
+        BeamNG race timing controls recording. The tt- start follows this activity's grid position.
+      </small>
+      <div class="gr-gate-diagnostics" ng-if="state.startLineSet && !state.raceMode">
+        <span>{{ autoLapGateLabel() }}</span>
+        <b ng-if="state.autoLapEnabled">{{ autoLapDistanceLabel() }}</b>
+        <em ng-if="!settings.showStartGate">Start gate markers are hidden</em>
+        <em ng-if="autoLapRejectLabel()">{{ autoLapRejectLabel() }}</em>
+      </div>
+      <div class="gr-route-summary" ng-if="state.startLineSet && !state.raceMode">
+        <span>
+          ROUTE GUIDE · HYBRID ROAD
+          <b ng-class="{ 'is-active': state.routeGuideActive && settings.showRouteGuide }">
+            {{ routeGuideStatusLabel() }}
+          </b>
+        </span>
+        <small ng-if="state.routeGuideReady">
+          {{ state.routeSourceLabel || 'Reference ghost' }} ·
+          {{ formatRouteDistance(state.routeDistance) }} ·
+          {{ state.routePointCount || 0 }} path points ·
+          {{ state.routeCheckpointCount || 0 }} checkpoints
+        </small>
+        <small class="gr-route-match" ng-if="state.routeGuideReady && routeMatchLabel()"
+               ng-class="{ 'is-warning': routeMatch.status !== 'matched' }">
+          <b>{{ routeMatchLabel() }}</b> · {{ routeMatchMessage() }}
+        </small>
+        <small ng-if="!state.routeGuideReady">
+          Complete one valid lap to generate the path and checkpoints.
+        </small>
+      </div>
+    </section>
+
+    <section class="gr-ghost-library">
+      <div class="gr-library-head">
+        <span>
+          GHOST DISPLAY
+          <b>{{ visibleDisplayedGhostCount() }}/{{ visibleGhosts().length }}</b>
+        </span>
+        <div class="gr-library-controls">
+          <button type="button" class="gr-camera-mode"
+                  ng-class="{ 'is-enabled': state.ghostCameraEnabled }"
+                  ng-disabled="!state.ghostCameraAvailable && !state.ghostCameraEnabled"
+                  ng-click="toggleGhostCamera()"
+                  title="{{ state.ghostCameraEnabled ? 'Return to the driving vehicle camera' : 'Follow the selected displayed Ghost' }}">
+            {{ state.ghostCameraEnabled ? 'DRIVER VIEW' : 'GHOST VIEW' }}
+          </button>
+          <button type="button" class="gr-loop-mode"
+                  ng-class="{ 'is-enabled': settings.loop }"
+                  ng-click="toggleLoopPlayback()"
+                  title="All visible ghosts restart together after the longest ghost finishes">
+            {{ settings.loop ? '↻ LOOP ALL' : '1× PLAY ONCE' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="gr-custom-select gr-ghost-mode-select"
+           ng-class="{ 'is-open': openOptionMenu === 'ghostMode' }">
+        <button type="button" class="gr-select-trigger"
+                aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'ghostMode' }}"
+                ng-click="toggleOptionMenu('ghostMode', $event)">
+          <span class="gr-select-value">
+            <i class="gr-select-accent"></i>
+            <span class="gr-select-copy">
+              <strong>{{ ghostModeLabel() }}</strong>
+              <small>{{ ghostModeDescription() }}</small>
+            </span>
+          </span>
+          <i class="gr-select-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'ghostMode'">
+          <button type="button" role="option" ng-repeat="mode in ghostModes"
+                  aria-selected="{{ ghostMode === mode.value }}"
+                  ng-class="{ 'is-selected': ghostMode === mode.value }"
+                  ng-click="selectGhostMode(mode.value, $event)">
+            <i class="gr-option-radio"></i>
+            <span class="gr-option-copy">
+              <strong>{{ mode.label }}</strong>
+              <small>{{ mode.description }}</small>
+            </span>
+            <em class="gr-option-status">{{ ghostMode === mode.value ? 'CURRENT' : '' }}</em>
+          </button>
+        </div>
+      </div>
+
+      <div class="gr-custom-select gr-top-count-select"
+           ng-if="ghostMode === 'top'"
+           ng-class="{ 'is-open': openOptionMenu === 'topGhostCount' }">
+        <button type="button" class="gr-select-trigger"
+                aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'topGhostCount' }}"
+                ng-click="toggleOptionMenu('topGhostCount', $event)">
+          <span class="gr-select-value">
+            <i class="gr-select-accent"></i>
+            <span class="gr-select-copy">
+              <strong>Top {{ settings.topGhostCount }} ghosts</strong>
+              <small>{{ topGhostCountDescription(settings.topGhostCount) }}</small>
+            </span>
+          </span>
+          <i class="gr-select-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="gr-select-menu" role="listbox"
+             ng-if="openOptionMenu === 'topGhostCount'">
+          <button type="button" role="option"
+                  ng-repeat="count in topGhostCounts track by count"
+                  ng-class="{ 'is-selected': settings.topGhostCount === count }"
+                  ng-click="selectTopGhostCount(count, $event)">
+            <i class="gr-option-radio"></i>
+            <span class="gr-option-copy">
+              <strong>Top {{ count }}</strong>
+              <small>{{ topGhostCountDescription(count) }}</small>
+            </span>
+            <em class="gr-option-status">
+              {{ settings.topGhostCount === count ? 'CURRENT' : '' }}
+            </em>
+          </button>
+        </div>
+      </div>
+
+      <div class="gr-ghost-list" ng-if="visibleGhosts().length">
+        <div class="gr-ghost-row"
+             ng-repeat="ghost in visibleGhosts() track by ghost.id"
+             ng-class="{ 'is-selected': ghost.selected, 'is-share-selected': ghostShareSelected(ghost),
+                          'is-displayed': ghost.displayed,
+                          'is-incomplete': ghost.incomplete,
+                          'is-pinned': ghost.pinned }">
+          <button type="button" class="gr-ghost-share"
+                  ng-class="{ 'is-selected': ghostShareSelected(ghost) }"
+                  ng-click="toggleGhostShare(ghost, $event)"
+                  title="{{ ghostShareSelected(ghost) ? 'Remove from clipboard share selection' : 'Add to clipboard share selection' }}">
+            {{ ghostShareSelected(ghost) ? '✓' : '+' }}
+          </button>
+          <button type="button" class="gr-ghost-select"
+                  ng-click="selectGhost(ghost)" title="Click to select this ghost">
+            <i class="gr-ghost-color gr-color-{{ ghost.color }}"></i>
+            <span title="Recorded with {{ ghost.vehicle || 'unknown vehicle' }}">
+              {{ ghost.label }}
+              <small>
+                {{ ghost.incomplete ? incompleteReasonLabel(ghost.incompleteReason) + ' · ' : '' }}
+                {{ ghost.source === 'clipboard' ? 'shared · ' : '' }}
+                {{ ghost.vehicle || 'unknown vehicle' }}
+              </small>
+            </span>
+            <em ng-class="{ 'is-placeholder': !ghost.isBest && !ghost.incomplete && !ghost.manual,
+                             'is-partial': ghost.incomplete,
+                             'is-manual': ghost.manual }">
+              {{ ghost.incomplete ? 'PARTIAL' : (ghost.manual ? 'MANUAL' : 'BEST') }}
+            </em>
+            <b>{{ formatTime(ghost.lapTime != null ? ghost.lapTime : ghost.duration, false) }}</b>
+            <i class="gr-ghost-eye">{{ ghost.displayed ? '●' : '○' }}</i>
+          </button>
+          <button type="button" class="gr-ghost-camera"
+                  ng-class="{ 'is-current': ghost.cameraTarget && state.ghostCameraEnabled,
+                              'is-play': !state.playing || !ghost.displayed }"
+                  ng-click="playOrViewGhost(ghost, $event)"
+                  title="{{ state.playing && ghost.displayed
+                    ? 'Switch directly to this displayed Ghost camera'
+                    : 'Select this recording and start its Ghost playback' }}">
+            {{ state.playing && ghost.displayed
+              ? (ghost.cameraTarget && state.ghostCameraEnabled ? 'CAM' : 'VIEW')
+              : 'PLAY' }}
+          </button>
+          <button type="button" class="gr-ghost-pin"
+                  ng-class="{ 'is-pinned': ghost.pinned }"
+                  ng-click="togglePin(ghost, $event)"
+                  title="{{ ghost.pinned ? 'Pinned — protected from auto-cleanup and deletion. Click to unpin' : 'Pin to protect this ghost from auto-cleanup and deletion' }}">
+            📌
+          </button>
+          <button type="button" class="gr-ghost-delete"
+                  ng-class="{ 'is-armed': pendingGhostDeleteId === ghost.id, 'is-locked': ghost.pinned }"
+                  ng-click="requestDeleteGhost(ghost, $event)"
+                  title="{{ ghost.pinned ? 'Unpin this ghost before deleting' : (pendingGhostDeleteId === ghost.id ? 'Click again to delete this lap' : 'Delete this lap') }}">
+            {{ pendingGhostDeleteId === ghost.id ? 'CONFIRM' : 'DEL' }}
+          </button>
+        </div>
+      </div>
+      <p ng-if="!visibleGhosts().length && state.incompleteGhostCount && !settings.showIncomplete">
+        {{ state.incompleteGhostCount }} incomplete recording(s) hidden by the filter.
+      </p>
+      <p ng-if="!visibleGhosts().length && !(state.incompleteGhostCount && !settings.showIncomplete)">
+        Complete a lap to add the first ghost.
+      </p>
+      <small class="gr-partial-filter-note"
+             ng-if="visibleGhosts().length && state.incompleteGhostCount && !settings.showIncomplete">
+        {{ state.incompleteGhostCount }} partial recording(s) hidden · set Ghost recordings to Incomplete or Both in Settings.
+      </small>
+      <small class="gr-partial-filter-note"
+             ng-if="visibleGhosts().length && state.manualGhostCount && !manualFilterEnabled()">
+        {{ state.manualGhostCount }} manual recording(s) hidden · enable Show manual recordings in Settings.
+      </small>
+      <small>
+        Keeps {{ state.maxStoredGhosts || 20 }} completed laps,
+        {{ state.maxStoredManualGhosts || 20 }} recent manual runs and
+        {{ state.maxStoredIncompleteGhosts || 20 }} recent incomplete recordings separately.
+      </small>
+
+      <div class="gr-trail-legend"
+           ng-if="settings.showGhostTrail || settings.showBestLapLine">
+        <div>
+          <span>LINE TELEMETRY · {{ settings.trailMode === 'speed' ? 'ABSOLUTE SPEED' : (settings.trailMode === 'inputs' ? 'DRIVER INPUTS' : 'ACCELERATION') }}</span>
+          <b>
+            {{ settings.showBestLapLine ? 'FULL PB' : '' }}
+            {{ settings.showBestLapLine && settings.showGhostTrail ? ' + ' : '' }}
+            {{ settings.showGhostTrail ? 'LAST ' + (state.ghostTrailSeconds || 3) + ' s' : '' }}
+          </b>
+        </div>
+        <i ng-class="settings.trailMode === 'speed' ? 'is-speed' : (settings.trailMode === 'inputs' ? 'is-inputs' : 'is-acceleration')"></i>
+        <em ng-if="settings.trailMode === 'speed'">
+          <span>0</span><span>120</span><span>250+ km/h</span>
+        </em>
+        <em ng-if="settings.trailMode === 'acceleration'">
+          <span>BRAKE</span><span>STEADY</span><span>ACCEL</span>
+        </em>
+        <em ng-if="settings.trailMode === 'inputs'">
+          <span>BRAKE</span><span>COAST</span><span>THROTTLE</span>
+        </em>
+        <b class="gr-inputs-warning" ng-if="inputsModeHasNoData()">
+          No input data on this ghost — record a new lap (inputs are captured from 2.18 on).
+        </b>
+        <div class="gr-line-classes" ng-if="settings.showGhostTrail">
+          <span class="is-best-line">BEST · WIDE + HALO</span>
+          <span class="is-other-line">FAST BRIGHT → SLOW DIM</span>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" class="gr-reconnect"
+            ng-if="state.status === 'connecting' || state.status === 'error'"
+            ng-click="reconnect()">Retry connection</button>
+
+    <section class="gr-actions">
+      <button type="button" class="gr-action gr-action-primary"
+              ng-class="{ 'is-live': state.recording }"
+              ng-disabled="state.autoLapEnabled"
+              ng-click="toggleRecording()">
+        <span class="gr-record-dot"></span>
+        {{ state.recording ? 'Stop recording' : 'Record' }}
+      </button>
+      <button type="button" class="gr-action"
+              ng-class="{ 'is-live': state.playing }"
+              ng-disabled="!(state.hasRecording || state.playing)"
+              ng-click="togglePlayback()">
+        {{ state.playing ? 'Stop ghost' : 'Play ghost' }}
+      </button>
+    </section>
+
+    <section class="gr-file-actions">
+      <button type="button" ng-click="shareSelectedGhosts()"
+              title="Copy the selected Ghost recordings as a compact 20 Hz share code">
+        Share {{ shareSelectedCount() ? '(' + shareSelectedCount() + ')' : '' }}
+      </button>
+      <button type="button" ng-click="importGhostsFromClipboard()"
+              title="Read and validate a Ghost Racer share code from the system clipboard">
+        Import clipboard
+      </button>
+      <button type="button" class="gr-settings-button" ng-click="toggleSettings()"
+              ng-class="{ 'is-active': settingsOpen }">Settings</button>
+    </section>
+
+    <section class="gr-import-confirm" ng-if="state.importPending">
+      <span>
+        Import {{ state.importPendingSummary.ghostCount || 0 }} Ghost(s)
+        <small ng-if="state.importPendingSummary.sourceName">
+          From "{{ state.importPendingSummary.sourceName }}"
+          (exported by {{ state.importPendingSummary.exporterVersion || 'unknown' }})
+        </small>
+        <small ng-if="state.importPendingSummary.duplicateCount">
+          Skips {{ state.importPendingSummary.duplicateCount }} already stored
+        </small>
+        <small ng-if="state.importPendingSummary.skippedSlow">
+          Skips {{ state.importPendingSummary.skippedSlow }} outside the Top 20
+        </small>
+        <small ng-if="state.importPendingSummary.replaceComplete">
+          Replaces {{ state.importPendingSummary.replaceComplete }} slowest complete
+        </small>
+        <small ng-if="state.importPendingSummary.replaceIncomplete">
+          Replaces {{ state.importPendingSummary.replaceIncomplete }} oldest incomplete
+        </small>
+        <small ng-if="state.importPendingSummary.replaceManual">
+          Replaces {{ state.importPendingSummary.replaceManual }} oldest manual
+        </small>
+      </span>
+      <button type="button" ng-click="confirmClipboardImport()">Confirm replace</button>
+      <button type="button" ng-click="cancelClipboardImport()">Cancel</button>
+    </section>
+
+    <section class="gr-settings" ng-if="settingsOpen">
+      <label class="gr-setting gr-quality-setting">
+        <span>Ghost quality <b>{{ settings.quality }}</b></span>
+        <input type="range" min="1" max="10" step="1"
+               ng-model="settings.quality" ng-change="applyQuality()">
+      </label>
+
+      <div class="gr-setting gr-setting-options">
+        <span>Recording rate</span>
+        <div class="gr-custom-select" ng-class="{ 'is-open': openOptionMenu === 'sampleRate' }">
+          <button type="button" class="gr-select-trigger"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'sampleRate' }}"
+                  ng-click="toggleOptionMenu('sampleRate', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ settings.sampleRate }} Hz</strong>
+                <small>{{ sampleRateDescription(settings.sampleRate) }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'sampleRate'">
+            <button type="button" role="option" ng-repeat="rate in sampleRates"
+                    aria-selected="{{ settings.sampleRate === rate }}"
+                    ng-class="{ 'is-selected': settings.sampleRate === rate }"
+                    ng-click="selectSampleRate(rate, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ rate }} Hz</strong>
+                <small>{{ sampleRateDescription(rate) }}</small>
+              </span>
+              <em class="gr-option-status">{{ settings.sampleRate === rate ? 'CURRENT' : '' }}</em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show ghost</span>
+        <input type="checkbox" ng-model="settings.visible" ng-change="applyVisibility()">
+      </label>
+
+      <div class="gr-setting gr-category-setting">
+        <span>Ghost recordings</span>
+        <div class="gr-category-toggle" role="group" aria-label="Ghost recording category">
+          <button type="button"
+                  ng-class="{ 'is-selected': settings.ghostCategory === 'complete' }"
+                  ng-click="applyGhostCategory('complete')">Completed</button>
+          <button type="button"
+                  ng-class="{ 'is-selected': settings.ghostCategory === 'incomplete' }"
+                  ng-click="applyGhostCategory('incomplete')">Incomplete</button>
+          <button type="button"
+                  ng-class="{ 'is-selected': settings.ghostCategory === 'both' }"
+                  ng-click="applyGhostCategory('both')">Both</button>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Ghost body <b>EXPERIMENTAL</b></span>
+        <input type="checkbox" ng-model="settings.ghostShell"
+               ng-change="applyGhostShell()">
+      </label>
+      <small class="gr-help" ng-if="settings.ghostShell && shellCapacityExceeded()">
+        Top {{ settings.topGhostCount }} uses wireframe Ghosts for the complete group;
+        the Ghost body supports up to Top 10.
+      </small>
+      <small class="gr-help" ng-if="shellUnavailable()">
+        Optimized native Ghost unavailable; using the wireframe.
+      </small>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show manual recordings</span>
+        <input type="checkbox" ng-model="settings.showManual"
+               ng-change="applyManualVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show start gate</span>
+        <input type="checkbox" ng-model="settings.showStartGate"
+               ng-change="applyStartGateVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Restore last saved start</span>
+        <input type="checkbox" ng-model="settings.restoreSavedStart"
+               ng-change="applyRestoreSavedStart()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show saved start line beams</span>
+        <input type="checkbox" ng-model="settings.showSavedStartMarkers"
+               ng-change="applySavedStartMarkersVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Automatic route guide</span>
+        <input type="checkbox" ng-model="settings.showRouteGuide"
+               ng-change="applyRouteGuideVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting"
+             ng-class="{ 'is-disabled': !settings.showRouteGuide }">
+        <span>Show generated path ribbon</span>
+        <input type="checkbox" ng-model="settings.showRoutePath"
+               ng-disabled="!settings.showRouteGuide" ng-change="applyRoutePathVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting"
+             ng-class="{ 'is-disabled': !settings.showRouteGuide }">
+        <span>Show generated checkpoints</span>
+        <input type="checkbox" ng-model="settings.showRouteCheckpoints"
+               ng-disabled="!settings.showRouteGuide"
+               ng-change="applyRouteCheckpointsVisibility()">
+      </label>
+
+      <div class="gr-setting gr-setting-options"
+           ng-class="{ 'is-disabled': !settings.showRouteGuide || !settings.showRouteCheckpoints }">
+        <span>Checkpoint spacing</span>
+        <div class="gr-custom-select"
+             ng-class="{ 'is-open': openOptionMenu === 'routeSpacing',
+                         'is-disabled': !settings.showRouteGuide || !settings.showRouteCheckpoints }">
+          <button type="button" class="gr-select-trigger"
+                  ng-disabled="!settings.showRouteGuide || !settings.showRouteCheckpoints"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'routeSpacing' }}"
+                  ng-click="toggleOptionMenu('routeSpacing', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ settings.routeCheckpointSpacing }} m</strong>
+                <small>{{ routeCheckpointSpacingDescription(settings.routeCheckpointSpacing) }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'routeSpacing'">
+            <button type="button" role="option"
+                    ng-repeat="spacing in routeCheckpointSpacings track by spacing"
+                    aria-selected="{{ settings.routeCheckpointSpacing === spacing }}"
+                    ng-class="{ 'is-selected': settings.routeCheckpointSpacing === spacing }"
+                    ng-click="selectRouteCheckpointSpacing(spacing, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ spacing }} m</strong>
+                <small>{{ routeCheckpointSpacingDescription(spacing) }}</small>
+              </span>
+              <em class="gr-option-status">
+                {{ settings.routeCheckpointSpacing === spacing ? 'CURRENT' : '' }}
+              </em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show ghost trail</span>
+        <input type="checkbox" ng-model="settings.showGhostTrail"
+               ng-change="applyGhostTrailVisibility()">
+      </label>
+
+      <div class="gr-setting gr-setting-options"
+           ng-class="{ 'is-disabled': !settings.showGhostTrail }">
+        <span>Ghost trail length</span>
+        <div class="gr-custom-select"
+             ng-class="{ 'is-open': openOptionMenu === 'trailLength',
+                         'is-disabled': !settings.showGhostTrail }">
+          <button type="button" class="gr-select-trigger"
+                  ng-disabled="!settings.showGhostTrail"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'trailLength' }}"
+                  ng-click="toggleOptionMenu('trailLength', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ settings.trailSeconds }} seconds</strong>
+                <small>{{ trailLengthDescription(settings.trailSeconds) }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox"
+               ng-if="openOptionMenu === 'trailLength'">
+            <button type="button" role="option"
+                    ng-repeat="seconds in trailDurations track by seconds"
+                    aria-selected="{{ settings.trailSeconds === seconds }}"
+                    ng-class="{ 'is-selected': settings.trailSeconds === seconds }"
+                    ng-click="selectTrailLength(seconds, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ seconds }} seconds</strong>
+                <small>{{ trailLengthDescription(seconds) }}</small>
+              </span>
+              <em class="gr-option-status">
+                {{ settings.trailSeconds === seconds ? 'CURRENT' : '' }}
+              </em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Show best lap racing line</span>
+        <input type="checkbox" ng-model="settings.showBestLapLine"
+               ng-change="applyBestLapLineVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting" ng-if="settings.showBestLapLine">
+        <span title="A thin teal line to the right of the racing line, shown where the ghost used the clutch (Driver inputs mode, 2.18.6+ recordings)">Show clutch sub-line</span>
+        <input type="checkbox" ng-model="settings.showClutchLine"
+               ng-change="applyClutchLineVisibility()">
+      </label>
+
+      <label class="gr-setting gr-toggle-setting" ng-if="settings.showBestLapLine">
+        <span title="A thin blue line to the left of the racing line, shown where the ghost used the handbrake (Driver inputs mode)">Show handbrake sub-line</span>
+        <input type="checkbox" ng-model="settings.showHandbrakeLine"
+               ng-change="applyHandbrakeLineVisibility()">
+      </label>
+
+      <div class="gr-setting gr-setting-options">
+        <span>Line telemetry coloring</span>
+        <div class="gr-custom-select"
+             ng-class="{ 'is-open': openOptionMenu === 'trailMode',
+                         'is-disabled': !settings.showGhostTrail && !settings.showBestLapLine }">
+          <button type="button" class="gr-select-trigger"
+                  ng-disabled="!settings.showGhostTrail && !settings.showBestLapLine"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'trailMode' }}"
+                  ng-click="toggleOptionMenu('trailMode', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ trailModeLabel() }}</strong>
+                <small>{{ trailModeDescription() }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'trailMode'">
+            <button type="button" role="option" ng-repeat="mode in trailModes"
+                    aria-selected="{{ settings.trailMode === mode.value }}"
+                    ng-class="{ 'is-selected': settings.trailMode === mode.value }"
+                    ng-click="selectTrailMode(mode.value, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ mode.label }}</strong>
+                <small>{{ mode.description }}</small>
+              </span>
+              <em class="gr-option-status">{{ settings.trailMode === mode.value ? 'CURRENT' : '' }}</em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span title="Debug: draw your own input-coloured trajectory behind the car while recording a lap">Show live input trail (debug)</span>
+        <input type="checkbox" ng-model="settings.showLiveInputTrail"
+               ng-change="applyLiveInputTrailVisibility()">
+      </label>
+
+      <div class="gr-setting gr-setting-options" ng-if="settings.showLiveInputTrail">
+        <span>Live trail max segments</span>
+        <div class="gr-custom-select" ng-class="{ 'is-open': openOptionMenu === 'liveTrailMax' }">
+          <button type="button" class="gr-select-trigger"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'liveTrailMax' }}"
+                  ng-click="toggleOptionMenu('liveTrailMax', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ settings.liveInputTrailMaxSegments }}</strong>
+                <small>segments</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'liveTrailMax'">
+            <button type="button" role="option"
+                    ng-repeat="n in liveInputTrailMaxSegmentsOptions track by n"
+                    aria-selected="{{ settings.liveInputTrailMaxSegments === n }}"
+                    ng-class="{ 'is-selected': settings.liveInputTrailMaxSegments === n }"
+                    ng-click="selectLiveInputTrailMaxSegments(n, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy"><strong>{{ n }}</strong><small>segments</small></span>
+              <em class="gr-option-status">{{ settings.liveInputTrailMaxSegments === n ? 'CURRENT' : '' }}</em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <label class="gr-setting gr-toggle-setting">
+        <span>Loop all ghosts after longest finishes</span>
+        <input type="checkbox" ng-model="settings.loop" ng-change="applyLoop()">
+      </label>
+
+      <div class="gr-setting gr-setting-options">
+        <span>Ghost camera</span>
+        <div class="gr-custom-select"
+             ng-class="{ 'is-open': openOptionMenu === 'cameraMode' }">
+          <button type="button" class="gr-select-trigger"
+                  aria-haspopup="listbox" aria-expanded="{{ openOptionMenu === 'cameraMode' }}"
+                  ng-click="toggleOptionMenu('cameraMode', $event)">
+            <span class="gr-select-value">
+              <i class="gr-select-accent"></i>
+              <span class="gr-select-copy">
+                <strong>{{ cameraModeLabel() }}</strong>
+                <small>{{ cameraModeDescription() }}</small>
+              </span>
+            </span>
+            <i class="gr-select-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="gr-select-menu" role="listbox" ng-if="openOptionMenu === 'cameraMode'">
+            <button type="button" role="option" ng-repeat="mode in cameraModes"
+                    aria-selected="{{ settings.cameraMode === mode.value }}"
+                    ng-class="{ 'is-selected': settings.cameraMode === mode.value }"
+                    ng-click="selectGhostCameraMode(mode.value, $event)">
+              <i class="gr-option-radio"></i>
+              <span class="gr-option-copy">
+                <strong>{{ mode.label }}</strong>
+                <small>{{ mode.description }}</small>
+              </span>
+              <em class="gr-option-status">
+                {{ settings.cameraMode === mode.value ? 'CURRENT' : '' }}
+              </em>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="gr-setting gr-color-setting">
+        <span>Color</span>
+        <div class="gr-color-list">
+          <button ng-repeat="color in colors" type="button"
+                  class="gr-color gr-color-{{ color }}"
+                  ng-class="{ 'is-selected': settings.color === color }"
+                  ng-click="selectColor(color)" title="{{ color }}"
+                  aria-label="Use {{ color }} ghost color"></button>
+        </div>
+      </div>
+
+      <p class="gr-help">Hybrid road uses cyan for matched road centers and amber where it falls back to the recorded Ghost line. Best-lap and live trails share the selected telemetry colors. Ghost View follows the CAM-marked displayed lap; stop playback or press Driver View to return safely.<span ng-if="state.ghostCameraEnabled"> Camera: ACTIVE / {{ state.ghostCameraBackend === 'nativeFree' ? 'NATIVE FREE' : (state.ghostCameraBackend || 'UNKNOWN') }}.</span></p>
+    </section>
+  </div>
+</div>
