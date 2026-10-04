@@ -1,0 +1,10 @@
+{
+  "domElement": "<lap-log-app></lap-log-app>",
+  "name": "LapLog",
+  "description": "Records lap telemetry, splits laps on a start gate, and keeps every lap on disk with a personal best per Saved Start.",
+  "css": { "width": "330px", "height": "560px", "top": "35px", "right": "12px" },
+  "author": "Derived from Ghost Racer Replay (Jesus Goose) and Ghost Racer Enhanced (flintt)",
+  "version": "1.0.2",
+  "directive": "lapLogApp",
+  "preserveAspectRatio": false
+}

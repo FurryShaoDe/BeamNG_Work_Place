@@ -1,0 +1,220 @@
+<!--
+  The template root must NOT be <lap-log-app>. That element is what BeamNG
+  compiles to mount this app (see app.json "domElement"), and a template whose
+  root element matches the directive element keeps matching it again: each pass
+  appends one more nested copy, asynchronously, forever. The UI thread never
+  yields, and the game keeps running without a single Lua or JS error. The root
+  is therefore a plain div, like the Ghost Racer reference mod uses.
+
+  Dropdowns are custom button + menu widgets on purpose: a native <select>
+  popup cannot open under CEF off-screen rendering, so <select> only looks
+  clickable. Served by the toggleOptionMenu / select* handlers in app.js.
+-->
+<div class="bngApp ll-app">
+  <link rel="stylesheet" href="/ui/modules/apps/lapLogApp/app.css?v=1.0.0">
+  <div class="ll-head">
+    <span class="ll-dot" ng-class="dotClass"></span>
+    <span class="ll-title">LapLog <small>{{ state.vehicle || "无车辆" }}</small></span>
+    <button type="button" class="ll-icon-btn" title="重新连接车辆控制器"
+            ng-click="reload()">&#8635;</button>
+  </div>
+
+  <div class="ll-body">
+    <div class="ll-status">
+      <span>状态 <b>{{ statusText }}</b></span>
+      <span ng-if="state.recording">第 <b>{{ state.autoLapNumber || 1 }}</b> 圈</span>
+      <span ng-if="!state.recording">最佳 <b>{{ formatTime(state.pbTime) }}</b></span>
+    </div>
+    <div class="ll-message">{{ state.message }}</div>
+
+    <!-- 手动录制 -->
+    <div class="ll-section">
+      <div class="ll-section-title">录制</div>
+      <div class="ll-row">
+        <button type="button" class="ll-btn"
+                ng-class="{ 'is-recording': state.recording }"
+                ng-click="toggleRecording()"
+                ng-disabled="state.status === 'connecting'">
+          {{ state.recording ? '停止并保存' : '录制一段（不计时）' }}
+        </button>
+      </div>
+      <div class="ll-row">
+        <div class="ll-custom-select" ng-class="{ 'is-open': openOptionMenu === 'sampleRate' }">
+          <button type="button" class="ll-select-trigger"
+                  ng-click="toggleOptionMenu('sampleRate', $event)"
+                  ng-disabled="state.status === 'connecting'">
+            <span>采样率 {{ settings.sampleRate }} Hz</span>
+            <i class="ll-chevron"></i>
+          </button>
+          <div class="ll-select-menu" ng-if="openOptionMenu === 'sampleRate'">
+            <button type="button" class="ll-select-option"
+                    ng-repeat="rate in sampleRates"
+                    ng-class="{ 'is-selected': settings.sampleRate === rate }"
+                    ng-click="selectSampleRate(rate, $event)">{{ rate }} Hz</button>
+          </div>
+        </div>
+      </div>
+      <div class="ll-note">
+        手动录制单独存放，不计入圈速与最佳成绩。
+      </div>
+    </div>
+
+    <!-- 起点与计圈 -->
+    <div class="ll-section">
+      <div class="ll-section-title">
+        <span>起点与计圈</span>
+        <span>{{ (state.savedStartLines || []).length }} 个已存</span>
+      </div>
+
+      <div class="ll-row">
+        <div class="ll-custom-select" ng-class="{ 'is-open': openOptionMenu === 'start' }">
+          <button type="button" class="ll-select-trigger"
+                  ng-click="toggleOptionMenu('start', $event)"
+                  ng-disabled="!(state.savedStartLines || []).length">
+            <span>{{ selectedStartLabel }}</span>
+            <i class="ll-chevron"></i>
+          </button>
+          <div class="ll-select-menu" ng-if="openOptionMenu === 'start'">
+            <button type="button" class="ll-select-option"
+                    ng-repeat="line in state.savedStartLines"
+                    ng-class="{ 'is-selected': line.id === settings.selectedStartId }"
+                    ng-click="selectSavedStart(line, $event)">{{ line.name }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ll-row">
+        <button type="button" class="ll-btn is-primary"
+                ng-click="setStartLine()"
+                ng-disabled="state.status === 'connecting'">
+          {{ state.startLineSet ? '重新激活起点' : '设置起点' }}
+        </button>
+      </div>
+
+      <div class="ll-row">
+        <button type="button" class="ll-btn"
+                ng-class="{ 'is-on': state.autoLapEnabled }"
+                ng-click="toggleAutoLap()"
+                ng-disabled="!state.startLineSet">
+          {{ state.autoLapEnabled ? '自动计圈已启用' : '启用自动计圈' }}
+        </button>
+        <button type="button" class="ll-btn"
+                ng-click="toggleFinishGate()"
+                ng-disabled="!state.startLineSet">
+          {{ state.finishLineSet ? '移除终点' : '设置终点' }}
+        </button>
+      </div>
+
+      <div class="ll-row">
+        <button type="button" class="ll-btn" ng-click="newStartVariant()"
+                ng-disabled="!state.startLineSet">在此新建赛道</button>
+        <button type="button" class="ll-btn" ng-click="clearStartLine()"
+                ng-disabled="!state.startLineSet">停用起点</button>
+      </div>
+
+      <div class="ll-row">
+        <input class="ll-select" type="text" ng-model="renameDraft"
+               placeholder="重命名所选起点" maxlength="32" />
+        <button type="button" class="ll-btn" ng-click="renameStart()"
+                ng-disabled="!settings.selectedStartId || !renameDraft">重命名</button>
+      </div>
+
+      <div class="ll-row">
+        <button type="button" class="ll-btn is-danger"
+                ng-click="requestDeleteStart()"
+                ng-disabled="!settings.selectedStartId">
+          {{ deleteArmed ? '再次点击确认删除' : '删除该起点' }}
+        </button>
+      </div>
+      <div class="ll-note" ng-if="state.startLineSet">
+        门半宽 {{ state.startLineHalfWidth }} 米 &middot;
+        {{ state.finishLineSet ? '点对点' : '环形计圈' }} &middot;
+        {{ gateStateText }}
+      </div>
+    </div>
+
+    <!-- 圈速列表 -->
+    <div class="ll-section">
+      <div class="ll-section-title">
+        <span>已存圈速</span>
+        <span>{{ visibleLapCount }} / {{ state.totalGhostCount || 0 }}</span>
+      </div>
+
+      <div class="ll-row">
+        <div class="ll-custom-select" ng-class="{ 'is-open': openOptionMenu === 'category' }">
+          <button type="button" class="ll-select-trigger"
+                  ng-click="toggleOptionMenu('category', $event)">
+            <span>{{ categoryLabel }}</span>
+            <i class="ll-chevron"></i>
+          </button>
+          <div class="ll-select-menu" ng-if="openOptionMenu === 'category'">
+            <button type="button" class="ll-select-option"
+                    ng-repeat="c in categories"
+                    ng-class="{ 'is-selected': settings.categoryFilter === c.id }"
+                    ng-click="selectCategory(c, $event)">{{ c.label }}</button>
+          </div>
+        </div>
+      </div>
+
+      <label class="ll-setting">
+        <input type="checkbox" ng-model="settings.showManual"
+               ng-change="applyManualVisibility()" />
+        <span>显示手动录制</span>
+        <span class="ll-hint" ng-if="state.manualGhostCount">{{ state.manualGhostCount }}</span>
+      </label>
+      <label class="ll-setting">
+        <input type="checkbox" ng-model="settings.showStartGate"
+               ng-change="applyStartGateVisibility()" />
+        <span>显示起点门</span>
+      </label>
+      <label class="ll-setting">
+        <input type="checkbox" ng-model="settings.showSavedStartMarkers"
+               ng-change="applySavedStartMarkersVisibility()" />
+        <span>显示已存起点光柱</span>
+      </label>
+      <label class="ll-setting">
+        <input type="checkbox" ng-model="settings.restoreSavedStart"
+               ng-change="applyRestoreSavedStart()" />
+        <span>加载时恢复上次起点</span>
+      </label>
+
+      <div class="ll-lap-list" style="margin-top:8px">
+        <div class="ll-lap" ng-repeat="lap in visibleLaps"
+             ng-class="lap.cssClass">
+          <div class="ll-lap-main">
+            <div class="ll-lap-label">{{ lap.label }}</div>
+            <div class="ll-lap-sub">{{ lap.subtitle }}</div>
+          </div>
+          <div class="ll-lap-time" ng-class="{ 'is-pb': lap.isBest }">
+            {{ lap.timeText }}
+          </div>
+          <button type="button" class="ll-icon-btn" title="置顶 / 取消置顶"
+                  ng-click="togglePin(lap)">{{ lap.pinned ? '&#9733;' : '&#9734;' }}</button>
+          <button type="button" class="ll-icon-btn is-danger" title="删除"
+                  ng-click="deleteLap(lap)" ng-disabled="lap.pinned">&#10005;</button>
+        </div>
+
+        <div class="ll-empty" ng-if="!visibleLapCount">
+          该起点还没有圈速记录。
+        </div>
+      </div>
+
+      <div class="ll-note" ng-if="state.incompleteGhostCount && settings.categoryFilter === 'complete'">
+        有 {{ state.incompleteGhostCount }} 条未完成记录被隐藏 &middot;
+        把筛选切换为「未完成」或「全部」可查看。
+      </div>
+      <div class="ll-note" ng-if="state.manualGhostCount && !settings.showManual">
+        有 {{ state.manualGhostCount }} 条手动录制被隐藏。
+      </div>
+    </div>
+
+    <div class="ll-danger-zone">
+      <div class="ll-row">
+        <button type="button" class="ll-btn" ng-click="reload()">重载控制器状态</button>
+        <button type="button" class="ll-btn is-danger" ng-click="clearLibrary()">
+          清空该赛道数据
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

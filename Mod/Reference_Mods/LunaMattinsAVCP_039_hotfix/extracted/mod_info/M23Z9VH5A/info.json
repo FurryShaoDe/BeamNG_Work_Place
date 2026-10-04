@@ -1,0 +1,105 @@
+{
+    "attachments": [
+        {
+            "data_filename": "1306040.png",
+            "original_filename": "upload_2026-6-4_12-56-29.png",
+            "thumb_filename": "thumbs\/1306040.jpg"
+        },
+        {
+            "data_filename": "1306044.png",
+            "original_filename": "upload_2026-6-4_12-56-56.png",
+            "thumb_filename": "thumbs\/1306044.jpg"
+        },
+        {
+            "data_filename": "1306045.png",
+            "original_filename": "upload_2026-6-4_12-57-9.png",
+            "thumb_filename": "thumbs\/1306045.jpg"
+        }
+    ],
+    "resource_id": 38191,
+    "current_version_id": 70300,
+    "download_count": 0,
+    "resource_version_id": 71094,
+    "version_string": "0.5.1",
+    "last_update": 1784021952,
+    "rating_avg": 4.83333,
+    "rating_count": 0,
+    "rating_sum": 0,
+    "resource_category_id": 10,
+    "resource_date": 1780657859,
+    "review_count": 6,
+    "tag_line": "Simple, modern browser UI + OBD-like telemetry Dashboard",
+    "update_count": 3,
+    "path": "M23Z9VH5A\/70300\/",
+    "filename": "LunaMattinsAVCP_039_hotfix.zip",
+    "title": "Advanced Vehicle Control Panel (AVCP)",
+    "user_id": 393862,
+    "username": "Sanedish",
+    "tagid": "M23Z9VH5A",
+    "message": "[CENTER][B][COLOR=#FF0000][SIZE=5]Note: This mod is HEAVILY WIP and currently in its ALPHA state![\/SIZE][\/COLOR][\/B]\n[I][B][SIZE=4][ATTACH]1308330[\/ATTACH] [\/SIZE]\n[B][I][SIZE=5]You can join my [U][URL='https:\/\/discord.com\/'][COLOR=#4d4dff]Discord[\/COLOR][\/URL][\/U] for development & community news [URL='https:\/\/discord.gg\/MBahu2ydFH'][U][COLOR=#00b300]here[\/COLOR][\/U][\/URL]![\/SIZE][\/I][\/B][\/B][\/I][\/CENTER]\n\n[hr][\/hr]\n\n[CENTER][SIZE=6][B]Welcome to Luna Mattins' Advanced Vehicle Control Panel (AVCP)![\/B][\/SIZE]\n\n[ATTACH=full]1306540[\/ATTACH][\/CENTER]\n\n[hr][\/hr]\n\n[B]AVCP is a modern reimagination of the existing BeamNG.drive web-ui that the devs stopped working on a while ago. It's a really cool concept, so I simply decided to make my own.[\/B]\n\n[hr][\/hr]\n\n[CENTER][SIZE=5][B][COLOR=#ff0000]!! READ THIS TO RUN !![\/COLOR][\/B][\/SIZE][\/CENTER]\n\nTo run AVCP, navigate to [B]Options -> User Interface -> \"Enable Browser UI\"[\/B] and then open the \"Options\" tab again to start the server.\n\n[ATTACH=full]1306040[\/ATTACH]\n\nThen navigate to [URL='http:\/\/localhost:8084\/ui\/webcontrolpanel\/index.html']https:\/\/localhost:8084\/ui\/webcontrolpanel\/index.html[\/URL] in any browser on the same machine.\n[I]Note; [U]http[\/U] has been deprecated in v0.39, all traffic MUST be http[U][B]s[\/B][\/U]![\/I]\n\n[hr][\/hr]\n[I][SIZE=2]*Any green\/blue accented screenshots where taken using a custom theme from V0.2 - rest is stock V0.1[\/SIZE][\/I]\n\n[B]Running through BeamNG's external UI server, AVCP gives you a purpose-built telemetry, vehicle-control, world-control, AI\/traffic, statistics, diagnostics, and credits dashboard, featuring:[\/B]\n\n[LIST]\n[*][B]A Dashboard\u2122\ufe0f:[\/B] Nice dashboards featuring live speedometers, tachometers, G-force meter, throttle \/ brake \/ clutch \/ steering bars, warning indicators, speed \/ RPM history, wheel telemetry, and raw telemetry.\n[ATTACH=full]1306049[\/ATTACH]\n\n[*][B]Vehicle Controls:[\/B] Featuring easy buttons to control recovery, repair, reset, reload, lights, signals, horn, ignition, shifting, spawn, replace, and removing vehicles.\n[ATTACH=full]1306045[\/ATTACH]\n\n[*][B]World Controls:[\/B] Time of day, time flow, simulation speed, gravity presets, camera modes, fog, clouds, and wind.\n[ATTACH=full]1306044[\/ATTACH]\n\n[*][B]AI and Traffic Controls:[\/B] Player AI mode, aggression, target speed, traffic activation, traffic spawning\/removal, and traffic aggression.\n[ATTACH=full]1306541[\/ATTACH]\n\n[*][B]Stupendous Thingies:[\/B] We all need some fun these days, so AVCP features plenty of chaos too!\n\n[*][B]Statistics:[\/B] Top speed, max RPM, lateral\/longitudinal G, 0-100 km\/h timer, 0-60 mph timer, session distance, odometer, and vehicle details.\n[ATTACH=full]1306538[\/ATTACH]\n\n[*][B]Wheel and DT info:[\/B] Fixed read-only Lua queries for vehicle, environment, simulation, electrics, engine, and position information.\n[ATTACH=full]1306542[\/ATTACH]\n\n[*][B]Suspension Stats:[\/B] Live suspension stats, chassis load maps, damper activity and per corner load history.\n[ATTACH=full]1306540[\/ATTACH]\n\n[*][B]Easy Customization:[\/B] Effortlessly adjust the look of the entire UI through custom color themes and backgrounds with gorgeous glassmorphism.\n[ATTACH=full]1306543[\/ATTACH]\n[\/LIST]\n\n[CENTER][I][B]And of course some credits :).[\/B][\/I]\n\n[hr][\/hr]\n\n[SIZE=5][B]Mobile Support[\/B][\/SIZE]\n\nAVCP also supports mobile devices!\nTo use AVCP on a mobile device, such as a phone or tablet, you must either expose your local 8084 port to your network [COLOR=#FF0000][B][NOT THE WORLD!!!!!!!][\/B][\/COLOR] and replace \"localhost\" with your machine's local IP address - or simply use Tailscale as I did.\n\n\nFurther photos of the app can be found below - as the forum only permits 10 attachments;\n[URL]https:\/\/cdn.boykisser.cloud\/malo-interactive\/avcp\/navtree.html\/[\/URL]\n\n[B]AVCP is FULLY open-source and available on GitHub![\/B]\n[URL]https:\/\/github.com\/Sanedish\/avcp[\/URL][\/CENTER]",
+    "category_title": "",
+    "prefix_title": "Alpha",
+    "via": "packed by repo on Wed, 05 Aug 2026 02:07:59 GMT",
+    "hashes": [
+        [
+            "ui\/webcontrolpanel\/index.html",
+            "bf1d42a298f12f83"
+        ],
+        [
+            "ui\/webcontrolpanel\/css\/style.css",
+            "f783c04e290cc1e9"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/splash.js",
+            "e17d4c7bf01eeb47"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/settings.js",
+            "4c1a30305967d602"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/app.js",
+            "44a48895adf6f509"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/gauges.js",
+            "bff8916115aa34e7"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/bridge.js",
+            "a50715f7d83baf0a"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/datalab.js",
+            "dde0963f66bf2597"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/customize.js",
+            "826dca04cdcb3a6f"
+        ],
+        [
+            "ui\/webcontrolpanel\/js\/remote.js",
+            "e0c4d89fe940d7b0"
+        ],
+        [
+            "ui\/webcontrolpanel\/README.md",
+            "45e503c909e1831f"
+        ],
+        [
+            "ui\/webcontrolpanel\/media\/transparent.png",
+            "032df695bc0fc660"
+        ],
+        [
+            "ui\/webcontrolpanel\/media\/malo-interactive-splash-16x9.webm",
+            "e58f7a91c4d65e62"
+        ],
+        [
+            "ui\/webcontrolpanel\/media\/malo-interactive-splash-9x16.webm",
+            "0a1b7f71df6fab0e"
+        ],
+        [
+            "ui\/webcontrolpanel\/CHANGELOG.md",
+            "a558cfbb0db25786"
+        ]
+    ]
+}
