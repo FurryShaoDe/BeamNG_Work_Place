@@ -44,6 +44,7 @@ function M.new(options)
       color = entry.colorName,
       pinned = entry.pinned == true,
       hasInputs = entry.hasInputs == true,
+      hasChassis = entry.hasChassis == true,
       displayed = entry.displayed == true,
       isBest = entry.isBest == true,
       displayRank = entry.displayRank

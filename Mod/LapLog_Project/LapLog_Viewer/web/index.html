@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LapLog 分析台</title>
+<style>
+  /* 设计令牌与圈速榜站点保持一致（同一套橄榄/米色调） */
+  :root {
+    --bg-primary: #1e1d1a;
+    --bg-secondary: #262521;
+    --bg-card: rgba(60, 59, 52, 0.65);
+    --border-subtle: rgba(219, 216, 193, 0.08);
+    --border-strong: rgba(219, 216, 193, 0.15);
+    --text-primary: #dbd8c1;
+    --text-secondary: #b3b984;
+    --text-muted: #837f5e;
+    --accent: #c3b867;
+    --ok: #48eb7e;
+    --bad: #ef476f;
+    --mono: Consolas, "Cascadia Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font: 13px/1.5 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .app { display: grid; grid-template-columns: 320px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+  header {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  header h1 { font-size: 15px; margin: 0; letter-spacing: .5px; }
+  header h1 small { color: var(--text-muted); font-weight: normal; margin-left: 6px; }
+  #rootInfo { color: var(--text-muted); font-size: 11px; font-family: var(--mono); }
+  header .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  button, select {
+    background: rgba(60, 59, 52, 0.9); color: var(--text-primary);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer;
+  }
+  button:hover, select:hover { border-color: var(--accent); color: var(--accent); }
+  label { color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+
+  aside {
+    overflow-y: auto; padding: 10px; border-right: 1px solid var(--border-subtle);
+    background: var(--bg-secondary);
+  }
+  main { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .card h2 {
+    font-size: 12px; margin: 0 0 8px; color: var(--text-secondary);
+    font-weight: 600; letter-spacing: .5px; display: flex; gap: 8px; align-items: baseline;
+  }
+  .card h2 .hint { color: var(--text-muted); font-weight: normal; font-size: 11px; }
+  canvas { width: 100%; display: block; }
+  #map { height: 460px; }
+  #ch-speed, #ch-pedals, #ch-gear, #ch-gforce, #ch-loads, #ch-attitude, #ch-delta { height: 148px; }
+  #ch-suspension { height: 320px; }
+  .card h2 .ctrl { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .msg { color: var(--text-muted); padding: 6px 2px; font-size: 12px; }
+  .hint { color: var(--text-muted); font-size: 12px; }
+  .tree .level {
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: var(--text-secondary); font-size: 12px; margin: 10px 0 4px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .tree .lvl-tag { color: var(--text-muted); font-size: 10px; }
+  .tree .hint { margin: 0 0 6px; line-height: 1.5; font-size: 11px; }
+  .start {
+    display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+    padding: 5px 8px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
+  }
+  .start:hover { background: rgba(195, 184, 103, 0.08); }
+  .start.active { background: rgba(195, 184, 103, 0.14); border-color: var(--accent); }
+  .start .s-meta { color: var(--text-muted); font-size: 11px; font-family: var(--mono); }
+
+  .list-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 14px 0 6px; color: var(--text-secondary); font-size: 12px;
+  }
+  .filters { display: flex; gap: 4px; }
+  .chip {
+    padding: 1px 6px; font-size: 11px; border-radius: 3px;
+    background: transparent; border: 1px solid var(--border-subtle); color: var(--text-muted);
+  }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .lap-list { display: flex; flex-direction: column; gap: 2px; }
+  .lap {
+    display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+    border-radius: 4px; border: 1px solid transparent; font-size: 12px;
+  }
+  .lap:hover { background: rgba(195, 184, 103, 0.07); }
+  .lap.visible { background: rgba(195, 184, 103, 0.10); border-color: var(--border-strong); }
+  .lap.primary { border-color: var(--accent); }
+  .lap .l-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lap .l-time { font-family: var(--mono); color: var(--text-secondary); }
+  .lap .csv { color: var(--text-muted); text-decoration: none; font-size: 10px; }
+  .lap .csv:hover { color: var(--accent); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+  .badge { font-size: 10px; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 3px; padding: 0 3px; }
+  .badge.warn { color: var(--accent); border-color: var(--accent); }
+  .badge.bad { color: var(--bad); border-color: var(--bad); }
+
+  .readout { display: flex; flex-direction: column; gap: 4px; }
+  .ro { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+  .ro b { color: var(--text-primary); min-width: 76px; }
+  .ro span { color: var(--text-secondary); }
+
+  /* 播放控制条 */
+  .playbar { padding: 8px 12px; }
+  .pb-main { display: flex; align-items: center; gap: 10px; }
+  .pb-main .play-toggle { min-width: 84px; font-weight: 600; }
+  .pb-main .play-toggle.on { border-color: var(--accent); color: var(--accent); }
+  .pb-main .rewind { min-width: 40px; }
+  #playSeek {
+    flex: 1; min-width: 120px; height: 18px; margin: 0; cursor: pointer;
+    accent-color: var(--accent); background: transparent;
+  }
+  .pb-time { font-family: var(--mono); font-size: 12px; color: var(--text-secondary); min-width: 158px; text-align: right; }
+  .pb-sub { display: flex; align-items: center; gap: 16px; margin-top: 4px; flex-wrap: wrap; }
+  .pb-sub .hint { font-size: 11px; }
+
+  .lap .del {
+    border: none; background: none; color: var(--text-muted); cursor: pointer;
+    font-size: 13px; line-height: 1; padding: 0 3px; border-radius: 3px;
+  }
+  .lap .del:hover { color: var(--bad); border-color: transparent; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+  th { color: var(--text-muted); font-weight: 600; }
+  td { font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>LapLog 分析台 <small>本地运行 · 浏览只读 · 删除记录会写入 lapLogs（回收站 _trash）</small></h1>
+    <span id="rootInfo"></span>
+    <div class="tools">
+      <label>x 轴
+        <select id="xMode">
+          <option value="time">时间</option>
+          <option value="dist">距离</option>
+        </select>
+      </label>
+      <label>轨迹着色
+        <select id="colorMode">
+          <option value="lap">按圈</option>
+          <option value="speed">速度</option>
+          <option value="input">油门/刹车</option>
+          <option value="gear">档位</option>
+        </select>
+      </label>
+      <button id="btnFit">适配视野</button>
+      <button id="btnRescan">重新扫描</button>
+    </div>
+  </header>
+
+  <aside>
+    <div id="catalog"></div>
+  </aside>
+
+  <main>
+    <section class="card playbar">
+      <div class="pb-main">
+        <button id="btnPlay" class="play-toggle" title="空格键 播放/暂停">▶ 播放</button>
+        <button id="btnRewind" class="rewind" title="回到起点">⏮</button>
+        <input type="range" id="playSeek" min="0" max="1" step="0.001" value="0" title="拖动定位">
+        <span id="playTime" class="pb-time">0:00.000 / 0:00.000</span>
+      </div>
+      <div class="pb-sub">
+        <label>速度
+          <select id="playRate">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×（实时）</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="playFollow" checked> 视图跟随</label>
+        <label><input type="checkbox" id="playLoop"> 循环</label>
+        <label><input type="checkbox" id="rayHeading" checked> 车头指引线</label>
+        <label><input type="checkbox" id="rayTravel" checked> 行进方向线</label>
+        <label>线长
+          <select id="rayLength">
+            <option value="20">20 m</option>
+            <option value="40" selected>40 m</option>
+            <option value="60">60 m</option>
+            <option value="100">100 m</option>
+          </select>
+        </label>
+      </div>
+      <div class="pb-sub hint">
+        播放对象 = 主圈（左侧点行切换）· 空格 播放/暂停 · ←/→ ±1 秒（Shift ±5 秒）。
+        黄箭头/黄实线 = 车头朝向，青虚线 = 按位置差分算出的行进方向；两者夹角即滑移角（画在车旁，读数里的「滑移」）。
+        勾选「视图跟随」后轨迹图与曲线都会跟着播放头走。
+      </div>
+    </section>
+
+    <section class="card readout" id="readout"></section>
+
+    <section class="card">
+      <h2>轨迹 <span class="hint">滚轮缩放 · 拖动平移 · 悬停读位置；绿虚线 = 起点门，黄虚线 = 终点门 · 播放时黄箭头 = 车头朝向</span></h2>
+      <canvas id="map"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>速度 <span class="hint">km/h</span></h2>
+      <canvas id="ch-speed"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>油门 / 刹车 <span class="hint">% · 实线=油门 虚线=刹车</span></h2>
+      <canvas id="ch-pedals"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>档位 <span class="hint">每圈一条</span></h2>
+      <canvas id="ch-gear"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>G 值 <span class="hint">g · 实线=横向 虚线=纵向（服务端派生）</span></h2>
+      <canvas id="ch-gforce"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>悬架载荷 <span class="hint">kN · 每圈四条 = 前左（实线）/ 前右（虚线）/ 后左（点线）/ 后右（点划线）· 需 format 4 记录</span></h2>
+      <canvas id="ch-loads"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>车身姿态 <span class="hint">° · 实线=侧倾 虚线=俯仰(含地形) 点线=俯仰去地形 · 山道上俯仰基本被坡道主导（实测相关 0.97），看悬架用点线 · 需 format 4 记录</span></h2>
+      <canvas id="ch-attitude"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>悬架示意 <span class="hint">播放/悬停时实时形变 · 弹簧长度与车角高度由四轮载荷驱动（相对本圈中位数归一化，无弹簧刚度故不标毫米）· 读数里的侧倾/俯仰是世界姿态（含坡道，坡度与「去地形」单列）</span>
+        <span class="ctrl">
+          <label>倾斜来源
+            <select id="suspTilt">
+              <option value="load" selected>悬架载荷</option>
+              <option value="road">实测−地形</option>
+              <option value="world">实测世界姿态</option>
+            </select>
+          </label>
+          <label>形变放大
+            <select id="suspScale">
+              <option value="1">×1</option>
+              <option value="2" selected>×2</option>
+              <option value="4">×4</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="suspFlip"> 反转倾斜方向</label>
+        </span>
+      </h2>
+      <canvas id="ch-suspension"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>ΔT <span class="hint">相对最快圈 · 距离轴 · 单位秒（需勾选 ≥2 圈）</span></h2>
+      <canvas id="ch-delta"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>汇总 <span class="hint">按勾选的圈统计；点左侧色点行切换主圈</span></h2>
+      <div id="summary"></div>
+    </section>
+  </main>
+</div>
+<script src="charts.js"></script>
+<script src="suspension.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

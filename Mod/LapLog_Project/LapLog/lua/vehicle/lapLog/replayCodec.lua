@@ -20,6 +20,14 @@ function M.new(options)
   -- Optional driver inputs (2.18+). Absent in older layouts.
   local THROTTLE, BRAKE = indexes.throttle, indexes.brake
   local GEAR, HANDBRAKE, CLUTCH = indexes.gear, indexes.handbrake, indexes.clutch
+  -- Optional chassis telemetry (LapLog format 4). Per-wheel vertical load in
+  -- newtons in a fixed front-left, front-right, rear-left, rear-right order; a
+  -- wheel that does not exist records 0, so a reader can label the corners
+  -- without knowing the vehicle. Body roll and pitch follow, in radians, exactly
+  -- as obj:getRollPitchYaw() reports them. Absent in older layouts.
+  local LOAD_FL, LOAD_FR = indexes.loadFL, indexes.loadFR
+  local LOAD_RL, LOAD_RR = indexes.loadRL, indexes.loadRR
+  local ROLL, PITCH = indexes.roll, indexes.pitch
 
   local function quantizePedal(value)
     value = tonumber(value)
@@ -27,6 +35,22 @@ function M.new(options)
     if value < 0 then value = 0 elseif value > 1 then value = 1 end
     -- Two decimals is ample for colour and keeps the samples compact.
     return math.floor(value * 100 + 0.5) / 100
+  end
+
+  -- Whole newtons: a road car corner carries a few kN, so 1 N resolution is far
+  -- beyond what the loading needs while keeping the sample short.
+  local function quantizeNewton(value)
+    value = tonumber(value) or 0
+    if value < 0 then return -math.floor(-value + 0.5) end
+    return math.floor(value + 0.5)
+  end
+
+  -- Three decimals of a radian (about 0.06 degrees) is plenty for a roll/pitch
+  -- curve and keeps the value to a few characters.
+  local function quantizeRadians(value)
+    value = tonumber(value) or 0
+    if value < 0 then return -math.floor(-value * 1000 + 0.5) / 1000 end
+    return math.floor(value * 1000 + 0.5) / 1000
   end
 
   local codec = {}
@@ -48,7 +72,11 @@ function M.new(options)
     }
   end
 
-  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch)
+  -- `chassis` is the optional format-4 block
+  -- {loadFL=, loadFR=, loadRL=, loadRR=, roll=, pitch=}. It is absent when the
+  -- caller has no suspension data, which keeps the sample at the previous length
+  -- so nothing else has to care about the added columns.
+  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch, chassis)
     local px, py, pz = vehicleObject:getPositionXYZ()
     local front = vehicleObject:getDirectionVector()
     local up = vehicleObject:getDirectionVectorUp()
@@ -69,6 +97,16 @@ function M.new(options)
       if GEAR then sample[GEAR] = math.floor(tonumber(gear) or 0) end
       if HANDBRAKE then sample[HANDBRAKE] = quantizePedal(handbrake) or 0 end
       if CLUTCH then sample[CLUTCH] = quantizePedal(clutch) or 0 end
+    end
+    if LOAD_FL and chassis then
+      sample[LOAD_FL] = quantizeNewton(chassis.loadFL)
+      sample[LOAD_FR] = quantizeNewton(chassis.loadFR)
+      sample[LOAD_RL] = quantizeNewton(chassis.loadRL)
+      sample[LOAD_RR] = quantizeNewton(chassis.loadRR)
+      if ROLL and PITCH then
+        sample[ROLL] = quantizeRadians(chassis.roll)
+        sample[PITCH] = quantizeRadians(chassis.pitch)
+      end
     end
     return sample
   end
@@ -100,6 +138,7 @@ function M.new(options)
     local points = {}
     local hasSpeed = false
     local hasInputs = false
+    local hasChassis = false
     for index = 1, #sourcePoints do
       local point = sourcePoints[index]
       if type(point) == "table" then
@@ -127,6 +166,19 @@ function M.new(options)
               hasInputs = true
             end
           end
+          -- Format 4 chassis telemetry. Rows written before format 4 are simply
+          -- shorter, so the columns stay absent and read as "not recorded".
+          if LOAD_FL and #point >= LOAD_RR then
+            normalized[LOAD_FL] = tonumber(point[LOAD_FL]) or 0
+            normalized[LOAD_FR] = tonumber(point[LOAD_FR]) or 0
+            normalized[LOAD_RL] = tonumber(point[LOAD_RL]) or 0
+            normalized[LOAD_RR] = tonumber(point[LOAD_RR]) or 0
+            if ROLL and PITCH and #point >= PITCH then
+              normalized[ROLL] = tonumber(point[ROLL]) or 0
+              normalized[PITCH] = tonumber(point[PITCH]) or 0
+            end
+            hasChassis = true
+          end
           points[#points + 1] = normalized
         end
       end
@@ -137,6 +189,7 @@ function M.new(options)
     metadata.duration = metadata.duration or points[#points][TIME] or 0
     metadata.hasSpeed = hasSpeed
     metadata.hasInputs = hasInputs
+    metadata.hasChassis = hasChassis
     return points, metadata
   end
 

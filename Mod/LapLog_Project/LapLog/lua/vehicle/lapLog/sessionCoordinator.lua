@@ -42,7 +42,6 @@ function M.new(options)
     session.autoLapGateState = "lineReady"
     session.autoLapLastReject = nil
     session.autoLapDeltaSuppressed = false
-    session.reanchorFirstLapAtGate = false
     session.resetCrossing()
   end
 
@@ -54,21 +53,7 @@ function M.new(options)
     session.clearLastLapResult()
     session.autoLapLastReject = nil
     session.autoLapDeltaSuppressed = false
-    session.reanchorFirstLapAtGate = false
     session.resetCrossing()
-  end
-
-  function coordinator.beginPlacedAutoLap()
-    session.autoLapEnabled = true
-    session.autoLapActive = true
-    session.autoLapNumber = 1
-    session.autoLapCooldown = 0
-    session.reanchorFirstLapAtGate = true
-    session.clearLastLapResult()
-    session.autoLapLastReject = nil
-    session.autoLapDeltaSuppressed = false
-    session.resetCrossing()
-    session.autoLapGateState = "lapStarted"
   end
 
   function coordinator.clearStart()
@@ -79,7 +64,6 @@ function M.new(options)
     session.autoLapGateState = "off"
     session.autoLapLastReject = nil
     session.autoLapDeltaSuppressed = false
-    session.reanchorFirstLapAtGate = false
     session.resetCrossing()
   end
 
@@ -96,15 +80,14 @@ function M.new(options)
     session.autoLapGateState = "missed"
   end
 
+  -- A lap is defined as gate -> gate, so this is the only place a lap can open:
+  -- with auto lap armed and no lap active, the first forward crossing returns
+  -- "start" and the caller begins recording at the gate itself.
   function coordinator.acceptCrossing()
     session.autoLapCooldown = acceptedCrossingCooldown
     session.autoLapLastReject = nil
     session.resetCrossing()
 
-    if session.reanchorFirstLapAtGate then
-      session.reanchorFirstLapAtGate = false
-      return "reanchor"
-    end
     if not session.autoLapActive then return "start" end
     if session.autoLapDeltaSuppressed then return "discard" end
     if not recording.active then return "ignore" end
@@ -116,7 +99,7 @@ function M.new(options)
       session.autoLapDeltaSuppressed = false
       session.autoLapNumber = math.max(1, session.autoLapNumber + 1)
     else
-      assert(action == "start" or action == "reanchor", "unsupported gate-lap action")
+      assert(action == "start", "unsupported gate-lap action")
       session.autoLapActive = true
       session.autoLapNumber = 1
       session.autoLapDeltaSuppressed = false
@@ -159,7 +142,6 @@ function M.new(options)
     session.autoLapNumber = 0
     session.autoLapDeltaSuppressed = false
     session.autoLapLastReject = nil
-    session.reanchorFirstLapAtGate = false
     session.resetCrossing()
     session.clearLastLapResult()
   end
@@ -170,7 +152,6 @@ function M.new(options)
     session.autoLapCooldown = 1
     session.autoLapDeltaSuppressed = false
     session.autoLapLastReject = nil
-    session.reanchorFirstLapAtGate = false
     session.resetCrossing()
   end
 

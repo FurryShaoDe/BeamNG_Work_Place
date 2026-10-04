@@ -37,9 +37,15 @@
 //    CEF off-screen rendering the native select popup cannot open, so a
 //    <select> looks clickable and does nothing at all. Ghost Racer ships the
 //    same widget for the same reason.
+//
+// 6. `APP_VERSION` must stay in sync with the Lua controller's `CODE_VERSION`
+//    (vehicle/lapLog/controller/lapLog.lua). ensureController compares the two
+//    and reloads the controller whenever they differ, so a drift turns into an
+//    unload/reload cycle on every state request. The value also busts the
+//    app.html cache, so bump both whenever either side changes.
 
 angular.module('beamng.apps').directive('lapLogApp', [function () {
-  var APP_VERSION = '1.0.0';
+  var APP_VERSION = '1.0.2';
   var STORAGE_PREFIX = 'lapLog_';
   var CONTROLLER = 'lapLog';
 
@@ -267,6 +273,7 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
           parts.push(lap.isBest === true ? '个人最佳' : '圈速');
         }
         if (lap.hasInputs === true) parts.push('含输入');
+        if (lap.hasChassis === true) parts.push('含载荷');
         if (lap.pinned === true) parts.push('已置顶');
         return parts.filter(Boolean).join(' · ');
       }

@@ -27,8 +27,7 @@ function M.new()
     autoLapApproachY = 0,
     autoLapApproachZ = 0,
     autoLapApproachSigned = 0,
-    autoLapDeltaSuppressed = false,
-    reanchorFirstLapAtGate = false
+    autoLapDeltaSuppressed = false
   }
 
   function state.snapshot()
@@ -49,8 +48,7 @@ function M.new()
       autoLapApproachY = state.autoLapApproachY,
       autoLapApproachZ = state.autoLapApproachZ,
       autoLapApproachSigned = state.autoLapApproachSigned,
-      autoLapDeltaSuppressed = state.autoLapDeltaSuppressed,
-      reanchorFirstLapAtGate = state.reanchorFirstLapAtGate
+      autoLapDeltaSuppressed = state.autoLapDeltaSuppressed
     }
   end
 

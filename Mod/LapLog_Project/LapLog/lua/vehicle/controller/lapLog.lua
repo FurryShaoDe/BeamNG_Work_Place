@@ -14,7 +14,7 @@
 local M = {}
 M.type = "auxiliary"
 
-local CODE_VERSION = "1.0.0"
+local CODE_VERSION = "1.0.2"
 -- BeamNG can reload an external controller without invalidating package.loaded
 -- in that Vehicle VM. Clear only this mod's own submodules before the first
 -- require so Ctrl+L/F5 cannot combine a new controller with an older
@@ -44,7 +44,10 @@ if package and type(package.loaded) == "table" then
 end
 -- 3 adds optional per-sample driver pedal inputs (throttle/brake). Older format-2
 -- replays load unchanged; they simply carry no input data.
-local FORMAT_VERSION = 3
+-- 4 adds optional per-sample chassis telemetry: the four wheel loads (N, always
+-- ordered front-left, front-right, rear-left, rear-right) and body roll/pitch
+-- (rad). Format-3 and older replays load unchanged; they carry neither.
+local FORMAT_VERSION = 4
 local GHOST_LIBRARY_FORMAT_VERSION = 1
 local MAX_STORED_GHOSTS = 20
 local MAX_STORED_INCOMPLETE_GHOSTS = 20
@@ -151,6 +154,13 @@ local SPEED = 11
 -- shift points); HANDBRAKE is the parking/hand brake (0..1); CLUTCH (0..1) drives
 -- the optional parallel clutch sub-line.
 local THROTTLE, BRAKE, GEAR, HANDBRAKE, CLUTCH = 12, 13, 14, 15, 16
+-- Chassis telemetry, added in the format-4 recording. LOAD_* are the vertical
+-- tire loads in newtons, in a fixed front-left, front-right, rear-left,
+-- rear-right order (a wheel that is missing or destroyed records 0), so a reader
+-- can label the corners without knowing the vehicle. ROLL/PITCH are radians,
+-- exactly as obj:getRollPitchYaw() reports them.
+local LOAD_FL, LOAD_FR, LOAD_RL, LOAD_RR = 17, 18, 19, 20
+local ROLL, PITCH = 21, 22
 
 local replayCodec = require("vehicle/lapLog/replayCodec").new({
   formatVersion = FORMAT_VERSION,
@@ -161,7 +171,9 @@ local replayCodec = require("vehicle/lapLog/replayCodec").new({
     frontX = FRONT_X, frontY = FRONT_Y, frontZ = FRONT_Z,
     upX = UP_X, upY = UP_Y, upZ = UP_Z,
     speed = SPEED,
-    throttle = THROTTLE, brake = BRAKE, gear = GEAR, handbrake = HANDBRAKE, clutch = CLUTCH
+    throttle = THROTTLE, brake = BRAKE, gear = GEAR, handbrake = HANDBRAKE, clutch = CLUTCH,
+    loadFL = LOAD_FL, loadFR = LOAD_FR, loadRL = LOAD_RL, loadRR = LOAD_RR,
+    roll = ROLL, pitch = PITCH
   }
 })
 
@@ -318,10 +330,84 @@ local function readDriverInputs()
     tonumber(values.parkingbrake), tonumber(values.clutch)
 end
 
+-- Chassis telemetry: the four wheel loads and the body attitude.
+--
+-- The loads are plain reads of the wheels module. wheels.lua refreshes
+-- wd.downForce once per graphics frame, so at physics-step sample time the value
+-- is one frame old - the same freshness as electrics.values. Roll/pitch is one
+-- obj getter per sample. `chassisSample` is reused because the codec copies the
+-- numbers into the sample immediately, so sampling allocates nothing.
+local chassisSample = {}
+local wheelSampleTargets = nil
+-- Sample counter used to retry a failed corner lookup (wheels not in yet) without
+-- logging on every frame at 100 Hz.
+local wheelTargetsRetryIn = 0
+
+-- Corner lookup for the load columns. Standard vehicles name their wheels
+-- FL/FR/RL/RR and that is exactly what wheels.wheelRotatorIDs is keyed by
+-- (wheels.lua: M.wheelRotatorIDs[wd.name] = wd.cid). Vehicles that name them
+-- differently fall back to the game's own wheel order: the corners may then be
+-- mislabelled, but four loads are still recorded instead of none.
+local function resolveWheelSampleTargets()
+  local rotators = wheels and wheels.wheelRotators
+  local ids = wheels and wheels.wheelRotatorIDs
+  if type(rotators) ~= "table" or type(ids) ~= "table" then return nil, "none" end
+  local function byName(name)
+    local cid = ids[name]
+    return cid and rotators[cid] or nil
+  end
+  local named = {byName("FL"), byName("FR"), byName("RL"), byName("RR")}
+  if named[1] or named[2] or named[3] or named[4] then return named, "names" end
+  local list = wheels.wheels
+  if type(list) ~= "table" then return nil, "none" end
+  local fallback = {list[0], list[1], list[2], list[3]}
+  if fallback[1] or fallback[2] or fallback[3] or fallback[4] then
+    return fallback, "gameOrder"
+  end
+  return nil, "none"
+end
+
+-- wheels.initWheels() rebuilds the rotator tables on every vehicle reset, so the
+-- targets are re-resolved from init/reset. A failed lookup (the wheels module not
+-- populated yet) is retried lazily, at most once every 256 samples.
+local function refreshWheelSampleTargets()
+  local targets, mode = resolveWheelSampleTargets()
+  wheelSampleTargets = targets
+  wheelTargetsRetryIn = 0
+  startGateConfig.trace(
+    "chassis.bind", "loads=%d cornerLookup=%s",
+    targets and 4 or 0, tostring(mode)
+  )
+end
+
+local function readChassisTelemetry()
+  local targets = wheelSampleTargets
+  if not targets then
+    if wheelTargetsRetryIn > 0 then
+      wheelTargetsRetryIn = wheelTargetsRetryIn - 1
+    else
+      refreshWheelSampleTargets()
+      wheelTargetsRetryIn = 256
+      targets = wheelSampleTargets
+    end
+  end
+  local fl, fr = targets and targets[1], targets and targets[2]
+  local rl, rr = targets and targets[3], targets and targets[4]
+  local roll, pitch = obj:getRollPitchYaw()
+  chassisSample.loadFL = (fl and fl.downForce) or 0
+  chassisSample.loadFR = (fr and fr.downForce) or 0
+  chassisSample.loadRL = (rl and rl.downForce) or 0
+  chassisSample.loadRR = (rr and rr.downForce) or 0
+  chassisSample.roll = roll
+  chassisSample.pitch = pitch
+  return chassisSample
+end
+
 local function captureSample(timestamp)
   local throttle, brake, gear, handbrake, clutch = readDriverInputs()
   recordingState.points[#recordingState.points + 1] =
-    replayCodec.captureSample(obj, timestamp, throttle, brake, gear, handbrake, clutch)
+    replayCodec.captureSample(obj, timestamp, throttle, brake, gear, handbrake, clutch,
+      readChassisTelemetry())
 end
 
 local function normalizeReplay(data)
@@ -517,6 +603,7 @@ local function ensureGhostSamples(entry)
   -- The loaded samples are authoritative for whether inputs were recorded, so
   -- correct a stale/missing manifest flag from the real data.
   entry.hasInputs = metadata.hasInputs == true
+  entry.hasChassis = metadata.hasChassis == true
   entry.available = true
   entry.cursor = 1
   startGateConfig.trace(
@@ -785,7 +872,10 @@ local function addGhostToLibrary(points, lapTime, label, source, sampleIntervalO
     pinned = false,
     -- Whether this recording carries per-sample driver inputs (2.18+). Drives the
     -- "no input data" hint in the Driver-inputs colour mode.
-    hasInputs = type(points[1]) == "table" and points[1][THROTTLE] ~= nil
+    hasInputs = type(points[1]) == "table" and points[1][THROTTLE] ~= nil,
+    -- Whether this recording carries per-sample chassis telemetry (format 4):
+    -- wheel loads and body roll/pitch. Shown as a badge in the panel.
+    hasChassis = type(points[1]) == "table" and points[1][LOAD_FL] ~= nil
   }
   entry.shareFingerprint = shareFingerprintOverride
   if manualOverride ~= nil then
@@ -832,6 +922,7 @@ saveGhostManifest = function()
       selected = entry.selected == true,
       pinned = entry.pinned == true,
       hasInputs = entry.hasInputs == true,
+      hasChassis = entry.hasChassis == true,
       file = entry.file
     }
   end
@@ -954,7 +1045,8 @@ local function loadGhostLibrary(loadFilename, saveFilename, fallbackPoints, fall
           cursor = 1,
           available = true,
           pinned = descriptor.pinned == true,
-          hasInputs = descriptor.hasInputs == true
+          hasInputs = descriptor.hasInputs == true,
+          hasChassis = descriptor.hasChassis == true
         }
         if not pinned then
           loadedByCategory[category] = loadedByCategory[category] + 1
@@ -1563,6 +1655,43 @@ function startGateConfig.activateLine(line, allowLegacy)
   return true
 end
 
+-- Arm free-roam auto lap on the active start and wait for the gate.
+--
+-- Activating a start only arms the route. A lap is defined as gate -> gate, so the
+-- clock must never run from wherever the car happens to stand when the button is
+-- pressed; recording opens on the first forward crossing of the start gate
+-- (acceptCrossing -> "start"). Placing a start, restoring one, creating a variant
+-- and re-arming after a reset all funnel through here, so none of them can start a
+-- lap away from the gate.
+local function armAutoLapAtActiveStart(message)
+  sessionCoordinator.configureAutoLap(true)
+  sessionCoordinator.stopRecordingAndPlayback()
+  setPublicRecordPoints({})
+  local px, py, pz = obj:getPositionXYZ()
+  local signedDistance = (px - startGateConfig.startLineX) * startGateConfig.startLineNormalX
+    + (py - startGateConfig.startLineY) * startGateConfig.startLineNormalY
+    + (pz - startGateConfig.startLineZ) * startGateConfig.startLineNormalZ
+  if math.abs(signedDistance) <= 1 then
+    -- Parked on the plane: latch a virtual approach pose half a metre behind it, so
+    -- the first real movement across reads as the crossing.
+    startGateConfig.armAutoLapCrossing(
+      px - startGateConfig.startLineNormalX * (signedDistance + 0.5),
+      py - startGateConfig.startLineNormalY * (signedDistance + 0.5),
+      pz - startGateConfig.startLineNormalZ * (signedDistance + 0.5),
+      -0.5
+    )
+  elseif signedDistance <= -AUTO_LINE_HYSTERESIS then
+    -- Behind the gate: latch the current approach pose.
+    startGateConfig.armAutoLapCrossing(px, py, pz, signedDistance)
+  end
+  -- Ahead of the gate there is nothing to latch: the car has to come back around
+  -- and cross it forward like on any other lap.
+  rememberCurrentPosition(0)
+  sessionState.autoLapGateState = "waitingForStart"
+  startGateConfig.syncMarkers()
+  uiRuntimeState.lastMessage = message or "自动计圈已启用"
+end
+
 local function setAutoLapEnabled(value)
   local enabled = value == true
   if enabled and not startGateConfig.startLineSet then
@@ -1573,28 +1702,12 @@ local function setAutoLapEnabled(value)
   if recordingState.active then
     archiveIncompleteRecording(enabled and "autoLapRestarted" or "autoLapDisabled")
   end
-  sessionCoordinator.configureAutoLap(enabled)
-  sessionCoordinator.stopRecordingAndPlayback()
-  setPublicRecordPoints({})
   if enabled then
-    local px, py, pz = obj:getPositionXYZ()
-    local signedDistance = (px - startGateConfig.startLineX) * startGateConfig.startLineNormalX
-      + (py - startGateConfig.startLineY) * startGateConfig.startLineNormalY
-      + (pz - startGateConfig.startLineZ) * startGateConfig.startLineNormalZ
-    if math.abs(signedDistance) <= 1 then
-      startGateConfig.armAutoLapCrossing(
-        px - startGateConfig.startLineNormalX * (signedDistance + 0.5),
-        py - startGateConfig.startLineNormalY * (signedDistance + 0.5),
-        pz - startGateConfig.startLineNormalZ * (signedDistance + 0.5),
-        -0.5
-      )
-    elseif signedDistance <= -AUTO_LINE_HYSTERESIS then
-      startGateConfig.armAutoLapCrossing(px, py, pz, signedDistance)
-    end
-    rememberCurrentPosition(0)
-    sessionState.autoLapGateState = "waitingForStart"
-    uiRuntimeState.lastMessage = "自动计圈已启用"
+    armAutoLapAtActiveStart("自动计圈已启用")
   else
+    sessionCoordinator.configureAutoLap(false)
+    sessionCoordinator.stopRecordingAndPlayback()
+    setPublicRecordPoints({})
     sessionState.autoLapGateState = "off"
     uiRuntimeState.lastMessage = "自动计圈已关闭"
   end
@@ -1743,33 +1856,15 @@ function startGateConfig.setSavedMarkersVisible(value)
   return true
 end
 
-local function beginAutoLapRecordingAtStart()
-  sessionCoordinator.beginPlacedAutoLap()
-  rememberCurrentPosition(0)
-  local px, py, pz = obj:getPositionXYZ()
-  local signedDistance = (px - startGateConfig.startLineX) * startGateConfig.startLineNormalX
-    + (py - startGateConfig.startLineY) * startGateConfig.startLineNormalY
-    + (pz - startGateConfig.startLineZ) * startGateConfig.startLineNormalZ
-  if signedDistance < 0 then
-    startGateConfig.armAutoLapCrossing(px, py, pz, signedDistance)
-  end
-
-  startRecording()
-  startGateConfig.syncMarkers()
-  uiRuntimeState.lastMessage = "自动计圈：第 1 圈录制中 · "
-    .. tostring(startGateConfig.registry.activeId or "unsaved")
-  return true
-end
-
 local function setStartLine(levelName, diagnosticTraceId)
   startGateConfig.diagnosticTraceId = diagnosticTraceId and tostring(diagnosticTraceId) or nil
   startGateConfig.trace(
     "setStart.request", "level=%s", tostring(levelName)
   )
 
-  -- Restart of an existing start: re-arm it in place instead of deriving a fresh
-  -- gate from the current position. Once a start is created it stays fixed;
-  -- "Restart lap" restarts the lap on it. Re-deriving a gate from wherever the car
+  -- Re-activation of an existing start: re-arm it in place instead of deriving a
+  -- fresh gate from the current position. Once a start is created it stays fixed;
+  -- the button arms the lap on it again. Re-deriving a gate from wherever the car
   -- stopped could miss the match radius and fork off a brand-new start (its own
   -- track group), or silently jump to a different variant that shares the same
   -- gate. To move a start, clear it and set again.
@@ -1782,12 +1877,13 @@ local function setStartLine(levelName, diagnosticTraceId)
       )
       return false
     end
-    local restarted = beginAutoLapRecordingAtStart()
+    armAutoLapAtActiveStart("起点已重新就绪 · 驶过起点门开始计时")
     startGateConfig.trace(
-      "setStart.result", "restart result=%s active=%s name=%q",
-      tostring(restarted), tostring(restartTarget.id), tostring(restartTarget.name)
+      "setStart.result", "restart armed=%s active=%s name=%q",
+      tostring(sessionState.autoLapEnabled), tostring(restartTarget.id),
+      tostring(restartTarget.name)
     )
-    return restarted
+    return true
   end
 
   local px, py, pz = obj:getPositionXYZ()
@@ -1827,12 +1923,12 @@ local function setStartLine(levelName, diagnosticTraceId)
     startGateConfig.trace("setStart.result", "FAILED: line activation rejected id=%s", line.id)
     return false
   end
-  local started = beginAutoLapRecordingAtStart()
+  armAutoLapAtActiveStart("起点已设置 · 驶过起点门开始计时")
   startGateConfig.trace(
-    "setStart.result", "manual result=%s active=%s name=%q",
-    tostring(started), tostring(line.id), tostring(line.name)
+    "setStart.result", "manual armed=%s active=%s name=%q",
+    tostring(sessionState.autoLapEnabled), tostring(line.id), tostring(line.name)
   )
-  return started
+  return true
 end
 
 -- Place a finish gate at the current position, turning the active start into a
@@ -1920,9 +2016,8 @@ local function createStartVariant()
   end
   line.name = string.format("赛道 %d", count)
   if not startGateConfig.activateLine(line, true) then return false end
-  beginAutoLapRecordingAtStart()
+  armAutoLapAtActiveStart("新赛道 · " .. line.name .. " · 驶过起点门开始计时")
   if startGateConfig.saveRegistry then startGateConfig.saveRegistry() end
-  uiRuntimeState.lastMessage = "新赛道 · " .. line.name
   if startGateConfig.sendUiState then startGateConfig.sendUiState() end
   return true
 end
@@ -2096,14 +2191,6 @@ end
 local function onAutoLapLineCrossed()
   local rejectionReason = sessionState.autoLapLastReject
   local crossingAction = sessionCoordinator.acceptCrossing()
-
-  if crossingAction == "reanchor" then
-    if recordingState.active then stopRecording(false) end
-    sessionCoordinator.beginGateLap(crossingAction)
-    startRecording()
-    uiRuntimeState.lastMessage = "自动计圈：第 1 圈已对齐起点门"
-    return
-  end
 
   if crossingAction == "start" then
     sessionCoordinator.beginGateLap(crossingAction)
@@ -2340,8 +2427,7 @@ local function updateAutoLap(dtSim)
     elseif forwardSpeed < AUTO_LINE_MIN_FORWARD_SPEED then
       startGateConfig.rejectAutoLapCrossing("tooSlow")
     elseif sessionState.autoLapActive and recordingState.active
-        and recordingState.elapsed < AUTO_LAP_MIN_SECONDS
-        and not sessionState.reanchorFirstLapAtGate then
+        and recordingState.elapsed < AUTO_LAP_MIN_SECONDS then
       startGateConfig.rejectAutoLapCrossing("minimumLapTime")
     elseif lateralSquared <= AUTO_LINE_HALF_WIDTH * AUTO_LINE_HALF_WIDTH
         and math.abs(lateralZ) <= AUTO_LINE_MAX_VERTICAL
@@ -2551,6 +2637,7 @@ function startGateConfig.init()
     notify("LapLog：车辆缺少参考节点", 5)
     return
   end
+  refreshWheelSampleTargets()
   startGateConfig.trace("controller.init", "ready")
   startGateConfig.sendUiState()
 end
@@ -2558,6 +2645,8 @@ end
 function startGateConfig.reset()
   startGateConfig.trace("controller.reset", "recording=%s livePoints=%d",
     tostring(recordingState.active), #recordingState.points)
+  -- The reset rebuilt the wheel rotator tables, so the load targets must follow.
+  refreshWheelSampleTargets()
 
   -- A vehicle reset deliberately does NOT archive the interrupted attempt. The
   -- upstream Ghost Racer mod stores it as an "Incomplete" partial; here a reset
@@ -2573,17 +2662,18 @@ function startGateConfig.reset()
   if startGateConfig.startLineSet then rememberCurrentPosition(0) end
   startGateConfig.syncMarkers()
 
-  -- Re-arm straight away rather than waiting for the next gate crossing, so a
-  -- reset mid-lap does not leave a dead stretch where nothing is recorded. Only
-  -- meaningful when a start exists and free-roam auto lap is armed.
+  -- A reset that threw a lap away re-arms the start instead of re-opening the
+  -- clock: the next lap begins on the next forward pass through the start gate,
+  -- not at the recovery position. Only meaningful when a start exists and
+  -- free-roam auto lap is armed.
   if discarded and startGateConfig.startLineSet and sessionState.autoLapEnabled then
-    beginAutoLapRecordingAtStart()
+    armAutoLapAtActiveStart("残圈已丢弃 · 驶过起点门重新计时")
   end
 
   if discarded then
     -- Toast through the GE VM: a message fired from this VM mid-reset is wiped by
     -- the game's own reset UI teardown, so the player would never see it.
-    notifyViaGe("残圈已丢弃 · 重新开始计圈", 4)
+    notifyViaGe("残圈已丢弃 · 驶过起点门重新计时", 4)
   else
     uiRuntimeState.lastMessage = sessionState.autoLapEnabled
       and "重置后自动计圈已启用" or "就绪"
