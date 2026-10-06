@@ -45,7 +45,7 @@
 //    app.html cache, so bump both whenever either side changes.
 
 angular.module('beamng.apps').directive('lapLogApp', [function () {
-  var APP_VERSION = '1.0.2';
+  var APP_VERSION = '1.0.3';
   var STORAGE_PREFIX = 'lapLog_';
   var CONTROLLER = 'lapLog';
 
@@ -274,6 +274,7 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         }
         if (lap.hasInputs === true) parts.push('含输入');
         if (lap.hasChassis === true) parts.push('含载荷');
+        if (lap.hasSteering === true) parts.push('含转向');
         if (lap.pinned === true) parts.push('已置顶');
         return parts.filter(Boolean).join(' · ');
       }

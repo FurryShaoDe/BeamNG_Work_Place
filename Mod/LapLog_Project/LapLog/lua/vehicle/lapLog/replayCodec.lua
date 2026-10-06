@@ -28,6 +28,13 @@ function M.new(options)
   local LOAD_FL, LOAD_FR = indexes.loadFL, indexes.loadFR
   local LOAD_RL, LOAD_RR = indexes.loadRL, indexes.loadRR
   local ROLL, PITCH = indexes.roll, indexes.pitch
+  -- Optional steering inputs (LapLog format 5). Both are -1..1 input space:
+  -- STEERING is what the vehicle actually steers with (input.steering, written
+  -- into electrics.values.steering_input on the same line) and STEERING_RAW is
+  -- the same signal before the input assists
+  -- (electrics.values.steeringUnassisted). Turning them into degrees needs the
+  -- per-replay envelope.steeringWheelLock. Absent in older layouts.
+  local STEERING, STEERING_RAW = indexes.steering, indexes.steeringRaw
 
   local function quantizePedal(value)
     value = tonumber(value)
@@ -53,6 +60,16 @@ function M.new(options)
     return math.floor(value * 1000 + 0.5) / 1000
   end
 
+  -- Steering is recorded in input space (-1..1, full lock at +/-1). Three
+  -- decimals is about 0.06% of lock, i.e. well under a degree on a 450-degree
+  -- wheel, while keeping the sample short.
+  local function quantizeSteering(value)
+    value = tonumber(value) or 0
+    if value < -1 then value = -1 elseif value > 1 then value = 1 end
+    if value < 0 then return -math.floor(-value * 1000 + 0.5) / 1000 end
+    return math.floor(value * 1000 + 0.5) / 1000
+  end
+
   local codec = {}
 
   local function pointTime(point, fallbackIndex, interval)
@@ -73,10 +90,11 @@ function M.new(options)
   end
 
   -- `chassis` is the optional format-4 block
-  -- {loadFL=, loadFR=, loadRL=, loadRR=, roll=, pitch=}. It is absent when the
-  -- caller has no suspension data, which keeps the sample at the previous length
-  -- so nothing else has to care about the added columns.
-  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch, chassis)
+  -- {loadFL=, loadFR=, loadRL=, loadRR=, roll=, pitch=} and `steering` the
+  -- optional format-5 block {assisted=, raw=} (both -1..1 input space). Either
+  -- is absent when the caller has nothing to record, which keeps the sample at
+  -- the previous length so nothing else has to care about the added columns.
+  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch, chassis, steering)
     local px, py, pz = vehicleObject:getPositionXYZ()
     local front = vehicleObject:getDirectionVector()
     local up = vehicleObject:getDirectionVectorUp()
@@ -108,6 +126,19 @@ function M.new(options)
         sample[PITCH] = quantizeRadians(chassis.pitch)
       end
     end
+    -- Format 5 steering. One source missing (an assist that never wrote a value,
+    -- or a context without the pre-assist mirror) must not leave a hole in the
+    -- array, so both columns fall back to whichever value exists.
+    if STEERING and steering then
+      local assisted = tonumber(steering.assisted)
+      local raw = tonumber(steering.raw)
+      if assisted == nil then assisted = raw end
+      if raw == nil then raw = assisted end
+      if assisted ~= nil then
+        sample[STEERING] = quantizeSteering(assisted)
+        if STEERING_RAW then sample[STEERING_RAW] = quantizeSteering(raw) end
+      end
+    end
     return sample
   end
 
@@ -131,6 +162,9 @@ function M.new(options)
       metadata.complete = data.complete ~= false
       metadata.incompleteReason = data.incompleteReason
       metadata.shareFingerprint = data.shareFingerprint
+      -- Steering degrees = input space x this. Written since format 5; a file
+      -- without it still loads, the reader just cannot convert to degrees.
+      metadata.steeringWheelLock = tonumber(data.steeringWheelLock)
     end
 
     if type(sourcePoints) ~= "table" or #sourcePoints == 0 then return nil end
@@ -139,6 +173,7 @@ function M.new(options)
     local hasSpeed = false
     local hasInputs = false
     local hasChassis = false
+    local hasSteering = false
     for index = 1, #sourcePoints do
       local point = sourcePoints[index]
       if type(point) == "table" then
@@ -179,6 +214,18 @@ function M.new(options)
             end
             hasChassis = true
           end
+          -- Format 5 steering. Rows written before format 5 are simply shorter,
+          -- so the columns stay absent and read as "not recorded" instead of a
+          -- fake straight-ahead zero.
+          if STEERING and tonumber(point[STEERING]) ~= nil then
+            normalized[STEERING] = tonumber(point[STEERING])
+            local raw = STEERING_RAW and tonumber(point[STEERING_RAW]) or nil
+            -- A row carrying only the assisted column (hand-made file, or a
+            -- context without the pre-assist mirror) reuses it for both, so the
+            -- two channels stay aligned instead of one going missing.
+            normalized[STEERING_RAW] = raw or normalized[STEERING]
+            hasSteering = true
+          end
           points[#points + 1] = normalized
         end
       end
@@ -190,6 +237,7 @@ function M.new(options)
     metadata.hasSpeed = hasSpeed
     metadata.hasInputs = hasInputs
     metadata.hasChassis = hasChassis
+    metadata.hasSteering = hasSteering
     return points, metadata
   end
 
@@ -210,6 +258,11 @@ function M.new(options)
     }
 
     if settings.startLine then envelope.startLine = settings.startLine end
+    -- Degrees are a per-vehicle constant (input space x lock), so it belongs in
+    -- the envelope, not in every sample. Written since format 5.
+    if settings.steeringWheelLock then
+      envelope.steeringWheelLock = settings.steeringWheelLock
+    end
     return envelope
   end
 

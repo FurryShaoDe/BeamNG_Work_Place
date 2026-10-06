@@ -62,7 +62,11 @@
   .card h2 .hint { color: var(--text-muted); font-weight: normal; font-size: 11px; }
   canvas { width: 100%; display: block; }
   #map { height: 460px; }
-  #ch-speed, #ch-pedals, #ch-gear, #ch-gforce, #ch-loads, #ch-attitude, #ch-delta { height: 148px; }
+  #ch-speed, #ch-pedals, #ch-gear, #ch-gforce, #ch-steering,
+  #ch-loads, #ch-attitude { height: 148px; }
+  /* ΔT 是看形状的对比图：比普通曲线高一点，纵向比例才不显得被压扁 */
+  #ch-delta { height: 184px; }
+  #ch-balance { height: 320px; }
   #ch-suspension { height: 320px; }
   .card h2 .ctrl { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
@@ -235,6 +239,29 @@
     </section>
 
     <section class="card">
+      <h2>转向 <span class="hint">° 方向盘角（正 = 左转）· 实线 = 实际转向（助力后） 虚线 = 助力前（assists 未介入时的同一信号）· 角度 = 记录输入 × 该车锁角 · 需 format 5 记录</span></h2>
+      <canvas id="ch-steering"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>转向平衡 <span class="hint">方向盘角（x，正 = 左转）vs 横向 g（y）· 每圈一色：细点 = 原始样本，实线 = 5° 分箱中位数（要读的那条），阴影 = 25%–75%，点线 = p90 · 数字看两个：±15° 内的斜率（转向效率）与平台值（抓地上限）· 速度段
+          <select id="balBand">
+            <option value="all" selected>全部（≥40）</option>
+            <option value="40-80">40–80</option>
+            <option value="80-140">80–140</option>
+            <option value="140-200">140–200</option>
+            <option value="200+">200+</option>
+          </select> km/h</span>
+        <span class="ctrl">
+          <label><input type="checkbox" id="balClean" checked> 剔除打滑/异常样本</label>
+          <label><input type="checkbox" id="balFlip" checked> 反转转向方向</label>
+        </span>
+      </h2>
+      <canvas id="ch-balance"></canvas>
+      <div class="hint" id="balanceNote"></div>
+    </section>
+
+    <section class="card">
       <h2>悬架载荷 <span class="hint">kN · 每圈四条 = 前左（实线）/ 前右（虚线）/ 后左（点线）/ 后右（点划线）· 需 format 4 记录</span></h2>
       <canvas id="ch-loads"></canvas>
     </section>
@@ -268,7 +295,7 @@
     </section>
 
     <section class="card">
-      <h2>ΔT <span class="hint">相对最快圈 · 距离轴 · 单位秒（需勾选 ≥2 圈）</span></h2>
+      <h2>ΔT <span class="hint">相对最快圈 · 距离轴 · 单位秒 · 0 线 = 打平最快圈（需勾选 ≥2 圈）</span></h2>
       <canvas id="ch-delta"></canvas>
     </section>
 
@@ -280,6 +307,7 @@
 </div>
 <script src="charts.js"></script>
 <script src="suspension.js"></script>
+<script src="balance.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

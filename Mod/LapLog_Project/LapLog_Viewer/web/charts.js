@@ -139,6 +139,9 @@
     this.yRange = null;        // [min,max]
     this.xUnit = 's';
     this.cursorX = null;
+    this.emptyText = '';      // 空态提示（setEmpty 设置；为空则照常画坐标系）
+    this.zeroLine = false;    // 是否把 0 基线画得比普通网格重（ΔT 图用）
+    this.cursorMap = null;    // 全局游标 → 本图 x 轴的换算（ΔT 图用，见 _cursorValue）
     this.onCursor = null;
     this.onZoom = null;
     this._drag = null;
@@ -223,6 +226,19 @@
     this.view = view;
     this.yRange = yRange;
     this.xUnit = xUnit || 's';
+    this.emptyText = '';
+    this._staticDirty = true;
+    this.draw();
+  };
+
+  /* 空态：不画坐标系，只在画布中央给一句提示。
+     起因：ΔT 图在没有可用数据时画的是 [0,1]×[-1,1] 的默认坐标系，
+     x 轴看上去像「0.00–1.00 米」的比例尺，容易被当成坏图。 */
+  LineChart.prototype.setEmpty = function (text) {
+    this.emptyText = text || '没有可显示的数据';
+    this.series = [];
+    this.view = null;
+    this.yRange = null;
     this._staticDirty = true;
     this.draw();
   };
@@ -236,6 +252,15 @@
 
   LineChart.prototype.draw = function () {
     var fit = fitCanvas(this.canvas);
+    fit.ctx.clearRect(0, 0, fit.width, fit.height);
+    if (!this.series.length && this.emptyText) {
+      fit.ctx.fillStyle = '#837f5e';
+      fit.ctx.font = '13px "Segoe UI", "Microsoft YaHei", sans-serif';
+      fit.ctx.textAlign = 'center';
+      fit.ctx.textBaseline = 'middle';
+      fit.ctx.fillText(this.emptyText, fit.width / 2, fit.height / 2);
+      return;
+    }
     var back = this.back;
     var sizeChanged = back.width !== this.canvas.width || back.height !== this.canvas.height;
     if (sizeChanged) {
@@ -280,6 +305,17 @@
       ctx.lineTo(px.x1, Math.round(y) + 0.5);
       ctx.stroke();
       ctx.fillText(String(+yTicks[i].toFixed(3)), px.x0 - 6, y);
+    }
+
+    // 零基线（ΔT 图用）：0 是「与最快圈打平」，比普通网格重一档，正负一眼可分
+    if (this.zeroLine && yRange[0] < 0 && yRange[1] > 0) {
+      var zeroY = scales.yToPx(0);
+      ctx.strokeStyle = 'rgba(219,216,193,0.32)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px.x0, Math.round(zeroY) + 0.5);
+      ctx.lineTo(px.x1, Math.round(zeroY) + 0.5);
+      ctx.stroke();
     }
 
     // 纵向网格 + x 轴刻度
@@ -342,11 +378,21 @@
     ctx.fillText(this.xUnit, px.x1 - 18, height - MARGIN.bottom + 5);
   };
 
+  /* 游标位置的换算：有些图的 x 轴与全局游标不是同一个量（ΔT 图恒为距离轴，
+     而游标在「时间」模式下是秒），由 cursorMap 负责换算；换算不了（超出范围）返回 null。 */
+  LineChart.prototype._cursorValue = function () {
+    var x = this.cursorX;
+    if (x === null || x === undefined) return null;
+    if (this.cursorMap) x = this.cursorMap(x);
+    return (x === null || x === undefined) ? null : x;
+  };
+
   LineChart.prototype._drawCursor = function (ctx, width, height) {
-    if (this.cursorX === null || this.cursorX === undefined) return;
+    var cursorX = this._cursorValue();
+    if (cursorX === null) return;
     var scales = this._scales(width, height);
     var px = scales.px;
-    var x = scales.xToPx(this.cursorX);
+    var x = scales.xToPx(cursorX);
     if (x < px.x0 || x > px.x1) return;
     ctx.strokeStyle = 'rgba(219,216,193,0.55)';
     ctx.lineWidth = 1;
@@ -359,7 +405,7 @@
 
     for (var s = 0; s < this.series.length; s++) {
       var line = this.series[s];
-      var y = this._valueAt(line, this.cursorX);
+      var y = this._valueAt(line, cursorX);
       if (y === null) continue;
       ctx.fillStyle = line.color;
       ctx.beginPath();

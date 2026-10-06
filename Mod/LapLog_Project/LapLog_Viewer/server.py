@@ -39,13 +39,14 @@ WEB_DIR = ROOT_DIR / 'web'
 # ---------------------------------------------------------------------------
 # 通道表：样本列号（1 基）→ 通道定义。
 # 这是「以后 LapLog 加采样字段时唯一要动的地方」：加一行，前端曲线就多一条，
-# 查看器其余代码不需要改。单位换算也写在这里（scale = 展示值 / 存储值）。
+# 查看器其余代码不需要改。单位换算也写在这里（scale = 展示值 / 存储值），
+# 唯一的例外是转向两列：换算依赖每辆车的锁角（封装级元数据），见 build_channels()。
 # ---------------------------------------------------------------------------
 # 前端（web/app.js 的 SERVER_CODE）依赖这份「服务端代码版本」：页面发现两侧不一致时会提示
 # 重启查看器。凡改动 CHANNEL_TABLE / SERVE_CHANNELS / DERIVED_CHANNELS 或返回结构，都要 +1。
 # 起因：服务端进程一直跑着旧代码，而静态文件是每次请求现读的，于是浏览器拿到新前端 + 旧 API，
 # 新通道永远缺席、面板静默留空（用户 2026-10-04 实际踩到）。
-VIEWER_CODE_VERSION = 5
+VIEWER_CODE_VERSION = 6
 
 DEGREES_PER_RADIAN = 180.0 / math.pi
 
@@ -74,6 +75,11 @@ CHANNEL_TABLE = [
     (20, 'load_rr',   '后右载荷', 'kN',   0.001),
     (21, 'roll',      '侧倾',     '°',    DEGREES_PER_RADIAN),
     (22, 'pitch',     '俯仰',     '°',    DEGREES_PER_RADIAN),
+    # format 5（LapLog 1.0.3+）：转向输入，存的是 -1..1 输入空间（±1 = 满舵）。
+    # 角度 = 值 × 车辆锁角，而锁角是**每辆车一个**、写在封装里（meta.steeringWheelLock），
+    # 不是常数，所以换算不写在 scale 里，放到 build_channels() 里按记录换算成度。
+    (23, 'steering',  '转向',     '°',    1.0),
+    (24, 'steering_raw', '转向(助力前)', '°', 1.0),
 ]
 
 # 只把画图用得到的通道发给前端（省流量）；前向向量在服务端算完派生量后即可丢弃。
@@ -81,12 +87,18 @@ SERVE_CHANNELS = [
     't', 'pos_x', 'pos_y', 'pos_z',
     'speed', 'throttle', 'brake', 'gear', 'handbrake', 'clutch',
     'load_fl', 'load_fr', 'load_rl', 'load_rr', 'roll', 'pitch',
+    'steering', 'steering_raw',
 ]
 # 服务端派生的通道：距离 / 纵向加速度 / 横向 G / 航向（播放箭头用）/ 地形坡度 / 去地形俯仰
 DERIVED_CHANNELS = ['heading', 'dist', 'accel_lon', 'g_lat', 'grade', 'pitch_road']
 
 # 地形坡度的前瞻窗口（米）：太小会被逐帧噪声带走，太大就跟不上坡顶/坡底
 GRADE_WINDOW_M = 25.0
+
+# 记录的转向是 -1..1 输入空间，换算成度要乘车辆的转向锁角。锁角写在封装里
+# （format 5 起）；老文件/手工文件没有就按引擎自己的默认值 450 处理（游戏
+# lua/vehicle/input.lua:42），并在 meta 里标明用了缺省值。
+DEFAULT_STEERING_WHEEL_LOCK = 450.0
 
 STANDARD_GRAVITY = 9.80665
 NAME_SAFE_RE = re.compile(r'^[A-Za-z0-9_.\- ]+$')
@@ -231,6 +243,15 @@ def resolve_sample_file(lap_logs, entry, directory, ghost_id):
             return candidate
     files = scan_ghost_files(directory)
     return files.get(ghost_id)
+
+
+def envelope_columns(envelope):
+    """封装的样本列数（只看第一行，够判断尾部可选列有没有写入）。"""
+    samples = envelope.get('samples') if isinstance(envelope, dict) else None
+    if not isinstance(samples, list) or not samples:
+        return 0
+    first = samples[0]
+    return len(first) if isinstance(first, list) else 0
 
 
 def summarize_library(directory):
@@ -401,6 +422,8 @@ def build_laps(lap_logs, group, level, start_id):
             'color': ghost.get('color'),
             'pinned': ghost.get('pinned') is True,
             'hasInputs': ghost.get('hasInputs') is True,
+            # format 5：这条圈里有逐样本转向（面板据此提示/画转向曲线）
+            'hasSteering': ghost.get('hasSteering') is True,
             'orphan': False,
         })
     # 清单外的样本（例如手动录制残留）：一并列出，标记 orphan
@@ -419,6 +442,8 @@ def build_laps(lap_logs, group, level, start_id):
             'color': None,
             'pinned': False,
             'hasInputs': None,
+            # 清单外的样本没有描述符，只能看列数（第一行）
+            'hasSteering': envelope_columns(envelope) >= 23,
             'orphan': True,
         })
     laps.sort(key=lambda lap: (lap['lapTime'] is None,
@@ -436,11 +461,14 @@ def build_laps(lap_logs, group, level, start_id):
 # ---------------------------------------------------------------------------
 # 样本 → 命名通道
 # ---------------------------------------------------------------------------
-def build_channels(samples):
+def build_channels(samples, steering_lock=None):
     """把样本数组展开成命名通道，并补上派生通道（距离/纵向加速度/横向 G）。
 
     旧档案（format 2/3）的样本更短：缺列按 0 填充，但会在通道上标 available=False，
     前端据此跳过该曲线，免得把「没记录」画成一条零线。
+
+    steering_lock = 该记录的车辆转向锁角（度，format 5 的封装字段）。转向两列存的是
+    -1..1 输入空间，这里乘上锁角变成度；缺省值见 DEFAULT_STEERING_WHEEL_LOCK。
     """
     columns = max((len(row) for row in samples if isinstance(row, list)), default=0)
     values = {cid: [] for _, cid, _, _, _ in CHANNEL_TABLE}
@@ -525,6 +553,12 @@ def build_channels(samples):
     values['pitch_road'] = [pitch[i] - math.degrees(math.atan(grade[i] / 100.0))
                             for i in range(count)]
 
+    # 转向：记录的 -1..1 输入空间 → 方向盘角度。锁角是"每辆车一个"的值、写在封装里
+    # （老文件没有 → 用缺省 450 并在 meta 里标明），所以换算做在这里而不是 CHANNEL_TABLE。
+    lock = steering_lock if (steering_lock or 0) > 0 else DEFAULT_STEERING_WHEEL_LOCK
+    for cid in ('steering', 'steering_raw'):
+        values[cid] = [v * lock for v in values[cid]]
+
     labels = {cid: (label, unit) for _i, cid, label, unit, _s in CHANNEL_TABLE}
     labels['heading'] = ('航向', 'rad')
     labels['dist'] = ('距离', 'm')
@@ -565,7 +599,13 @@ def load_lap(lap_logs, group, level, start_id, ghost_id):
     if not envelope or not isinstance(envelope.get('samples'), list):
         return None
     samples = envelope['samples']
-    channels = build_channels(samples)
+    steering_lock = None
+    if envelope.get('steeringWheelLock') is not None:
+        try:
+            steering_lock = float(envelope['steeringWheelLock'])
+        except (TypeError, ValueError):
+            steering_lock = None
+    channels = build_channels(samples, steering_lock)
     return {
         'meta': {
             'id': ghost_id,
@@ -584,6 +624,10 @@ def load_lap(lap_logs, group, level, start_id, ghost_id):
             'sampleCount': len(samples),
             'columns': max((len(r) for r in samples if isinstance(r, list)), default=0),
             'startLine': library.get('startLine') or envelope.get('startLine'),
+            # 转向角度换算用的锁角：format 5 写在封装里；没有就退回缺省值并标出来，
+            # 免得前端把缺省值当成这辆车的真实锁角。
+            'steeringWheelLock': steering_lock or DEFAULT_STEERING_WHEEL_LOCK,
+            'steeringWheelLockDefault': not (steering_lock and steering_lock > 0),
         },
         'channels': channels,
     }
@@ -601,7 +645,8 @@ def export_csv(lap_logs, group, level, start_id, ghost_id):
     # 而不是补一列 0 骗人）
     for cid, name in (('load_fl', 'load_fl_kn'), ('load_fr', 'load_fr_kn'),
                       ('load_rl', 'load_rl_kn'), ('load_rr', 'load_rr_kn'),
-                      ('roll', 'roll_deg'), ('pitch', 'pitch_deg')):
+                      ('roll', 'roll_deg'), ('pitch', 'pitch_deg'),
+                      ('steering', 'steering_deg'), ('steering_raw', 'steering_raw_deg')):
         if channels[cid]['available']:
             order.append(cid)
             header.append(name)

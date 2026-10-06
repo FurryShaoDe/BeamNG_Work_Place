@@ -45,6 +45,9 @@ function M.new(options)
       pinned = entry.pinned == true,
       hasInputs = entry.hasInputs == true,
       hasChassis = entry.hasChassis == true,
+      -- Format 5: this lap carries per-sample steering (panel badge).
+      hasSteering = entry.hasSteering == true,
+      steeringWheelLock = entry.steeringWheelLock,
       displayed = entry.displayed == true,
       isBest = entry.isBest == true,
       displayRank = entry.displayRank
