@@ -14,7 +14,7 @@
 local M = {}
 M.type = "auxiliary"
 
-local CODE_VERSION = "1.0.2"
+local CODE_VERSION = "1.0.3"
 -- BeamNG can reload an external controller without invalidating package.loaded
 -- in that Vehicle VM. Clear only this mod's own submodules before the first
 -- require so Ctrl+L/F5 cannot combine a new controller with an older
@@ -47,7 +47,11 @@ end
 -- 4 adds optional per-sample chassis telemetry: the four wheel loads (N, always
 -- ordered front-left, front-right, rear-left, rear-right) and body roll/pitch
 -- (rad). Format-3 and older replays load unchanged; they carry neither.
-local FORMAT_VERSION = 4
+-- 5 adds optional per-sample steering: the assisted driver steering input and
+-- the same signal before the input assists, both -1..1 input space. The envelope
+-- carries steeringWheelLock (degrees) so a reader can convert to degrees.
+-- Format-4 and older replays load unchanged; they carry no steering columns.
+local FORMAT_VERSION = 5
 local GHOST_LIBRARY_FORMAT_VERSION = 1
 local MAX_STORED_GHOSTS = 20
 local MAX_STORED_INCOMPLETE_GHOSTS = 20
@@ -161,6 +165,17 @@ local THROTTLE, BRAKE, GEAR, HANDBRAKE, CLUTCH = 12, 13, 14, 15, 16
 -- exactly as obj:getRollPitchYaw() reports them.
 local LOAD_FL, LOAD_FR, LOAD_RL, LOAD_RR = 17, 18, 19, 20
 local ROLL, PITCH = 21, 22
+-- Steering, added in the format-5 recording. Both columns are -1..1 input space
+-- (full lock at +/-1): STEERING is what the vehicle steers with (`input.steering`,
+-- the same number written to `electrics.values.steering_input`) and
+-- STEERING_RAW is the same signal before the input assists
+-- (`electrics.values.steeringUnassisted`). Their difference is how much the
+-- assists interfered. Degrees = value x envelope.steeringWheelLock.
+local STEERING, STEERING_RAW = 23, 24
+-- Engine default when neither the jbeam `input.steeringWheelLock` nor a steering
+-- hydro provides one (vehicle input.lua:42). Recorded per replay so a reader can
+-- always turn input space into degrees.
+local DEFAULT_STEERING_WHEEL_LOCK = 450
 
 local replayCodec = require("vehicle/lapLog/replayCodec").new({
   formatVersion = FORMAT_VERSION,
@@ -173,7 +188,8 @@ local replayCodec = require("vehicle/lapLog/replayCodec").new({
     speed = SPEED,
     throttle = THROTTLE, brake = BRAKE, gear = GEAR, handbrake = HANDBRAKE, clutch = CLUTCH,
     loadFL = LOAD_FL, loadFR = LOAD_FR, loadRL = LOAD_RL, loadRR = LOAD_RR,
-    roll = ROLL, pitch = PITCH
+    roll = ROLL, pitch = PITCH,
+    steering = STEERING, steeringRaw = STEERING_RAW
   }
 })
 
@@ -330,6 +346,36 @@ local function readDriverInputs()
     tonumber(values.parkingbrake), tonumber(values.clutch)
 end
 
+-- Steering inputs, from the same electrics table. `steering_input` is the value
+-- after the input filters and assists and is what the car actually steers with
+-- (the vehicle input module writes it and `input.steering` on the same line,
+-- input.lua:675-678); `steeringUnassisted` is the same signal captured before
+-- those assists (input.lua:487-488), so the pair shows how much the assists
+-- interfered. The table is reused because the codec copies the numbers into the
+-- sample immediately, so sampling allocates nothing.
+local steeringSample = {}
+
+local function readSteeringInputs()
+  local values = electrics and electrics.values
+  if type(values) ~= "table" then return nil end
+  steeringSample.assisted = tonumber(values.steering_input)
+  steeringSample.raw = tonumber(values.steeringUnassisted)
+  if steeringSample.assisted == nil and steeringSample.raw == nil then return nil end
+  return steeringSample
+end
+
+-- Steering lock in degrees, recorded once per replay so input space (-1..1) is
+-- always convertible to steering-wheel degrees. `v.data.input.steeringWheelLock`
+-- comes from the jbeam `input` section, or is back-filled by the hydros module
+-- for steering-hydro cars (input.lua:175-182); anything else falls back to the
+-- engine's own default (input.lua:42).
+local function steeringWheelLockDegrees()
+  local inputData = v and v.data and v.data.input
+  local lock = tonumber(inputData and inputData.steeringWheelLock)
+  if lock == nil or lock <= 0 then return DEFAULT_STEERING_WHEEL_LOCK end
+  return lock
+end
+
 -- Chassis telemetry: the four wheel loads and the body attitude.
 --
 -- The loads are plain reads of the wheels module. wheels.lua refreshes
@@ -407,7 +453,7 @@ local function captureSample(timestamp)
   local throttle, brake, gear, handbrake, clutch = readDriverInputs()
   recordingState.points[#recordingState.points + 1] =
     replayCodec.captureSample(obj, timestamp, throttle, brake, gear, handbrake, clutch,
-      readChassisTelemetry())
+      readChassisTelemetry(), readSteeringInputs())
 end
 
 local function normalizeReplay(data)
@@ -425,6 +471,7 @@ local function replayEnvelope(points, lapTime)
     sampleInterval = recordingState.activeSampleInterval,
     vehicle = v.data.vehicleDirectory,
     groundOffset = recordingState.groundOffset,
+    steeringWheelLock = steeringWheelLockDegrees(),
     startLine = startLine
   })
 end
@@ -604,6 +651,10 @@ local function ensureGhostSamples(entry)
   -- correct a stale/missing manifest flag from the real data.
   entry.hasInputs = metadata.hasInputs == true
   entry.hasChassis = metadata.hasChassis == true
+  entry.hasSteering = metadata.hasSteering == true
+  -- The samples are also the authority for the lock (per-vehicle constant); a
+  -- manifest written by an older build simply has no value here.
+  entry.steeringWheelLock = entry.steeringWheelLock or metadata.steeringWheelLock
   entry.available = true
   entry.cursor = 1
   startGateConfig.trace(
@@ -692,6 +743,7 @@ local function persistGhostSamples(entry)
   envelope.complete = entry.complete ~= false
   envelope.incompleteReason = entry.incompleteReason
   envelope.shareFingerprint = entry.shareFingerprint
+  envelope.steeringWheelLock = entry.steeringWheelLock or envelope.steeringWheelLock
   local success = jsonWriteFile(targetFilename, envelope, false) ~= false
   if success then entry.file = targetFilename end
   return success
@@ -875,7 +927,12 @@ local function addGhostToLibrary(points, lapTime, label, source, sampleIntervalO
     hasInputs = type(points[1]) == "table" and points[1][THROTTLE] ~= nil,
     -- Whether this recording carries per-sample chassis telemetry (format 4):
     -- wheel loads and body roll/pitch. Shown as a badge in the panel.
-    hasChassis = type(points[1]) == "table" and points[1][LOAD_FL] ~= nil
+    hasChassis = type(points[1]) == "table" and points[1][LOAD_FL] ~= nil,
+    -- Whether this recording carries per-sample steering (format 5). Shown as a
+    -- badge in the panel; the lock travels with the manifest so the viewer can
+    -- print degrees for this lap.
+    hasSteering = type(points[1]) == "table" and points[1][STEERING] ~= nil,
+    steeringWheelLock = steeringWheelLockDegrees()
   }
   entry.shareFingerprint = shareFingerprintOverride
   if manualOverride ~= nil then
@@ -923,6 +980,8 @@ saveGhostManifest = function()
       pinned = entry.pinned == true,
       hasInputs = entry.hasInputs == true,
       hasChassis = entry.hasChassis == true,
+      hasSteering = entry.hasSteering == true,
+      steeringWheelLock = entry.steeringWheelLock,
       file = entry.file
     }
   end

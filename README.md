@@ -77,8 +77,8 @@ git push
 
 | 部分 | 说明 |
 | --- | --- |
-| `Mod/LapLog_Project/LapLog/` | BeamNG.drive 的圈速记录模组（由 flintt-ghost-racer-enhanced 派生）。当前 **1.0.2 / format 4**：样本 22 列（在原 16 列后追加四轮垂直接地载荷 + 车身侧倾/俯仰）。装到 `<用户目录>/mods/unpacked/LapLog/`，进游戏在 UI Apps 里添加。 |
-| `Mod/LapLog_Project/LapLog_Viewer/` | 本地分析台：轨迹图、通道曲线（速度/踏板/档位/G/悬架载荷/车身姿态）、悬架示意（正视图+侧视图，播放时实时形变）、ΔT、共享游标、实时播放、CSV 导出、删除记录。浏览只读，只有"删除"会写 `lapLogs/_trash/`。 |
+| `Mod/LapLog_Project/LapLog/` | BeamNG.drive 的圈速记录模组（由 flintt-ghost-racer-enhanced 派生）。当前 **1.0.3 / format 5**：样本 24 列 = 原 16 列 + 四轮垂直接地载荷 + 车身侧倾/俯仰 + **转向两列**（1.0.2/format 4 的载荷与姿态已实机确认）。装到 `<用户目录>/mods/unpacked/LapLog/`，进游戏在 UI Apps 里添加。文档：`LapLog/README.md`（英文，权威）/ `LapLog/README.zh-CN.md`（中文）。 |
+| `Mod/LapLog_Project/LapLog_Viewer/` | 本地分析台：轨迹图、通道曲线（速度/踏板/档位/G/**转向**/悬架载荷/车身姿态）、**转向平衡图**（5° 分箱包络 + 小角度斜率 + 平台值，带速度段与剔除打滑）、悬架示意（正视图+侧视图，播放时实时形变）、ΔT、共享游标、实时播放、CSV 导出、删除记录；旧版按车辆存放的库单列在 `vehicles` 分组。浏览只读，只有"删除"会写 `lapLogs/_trash/`。 |
 
 ```bash
 双击 Mod/LapLog_Project/一键启动查看器.bat      # 端口 8010，自动开浏览器
@@ -87,7 +87,7 @@ python Mod/LapLog_Project/LapLog_Viewer/server.py --port 8010 --root "…\BeamNG
 
 ⚠️ 改过 `LapLog_Viewer/` 里的代码后必须**重启查看器**（服务端是常驻进程，静态文件却是每次请求现读磁盘）；
 页面检测到前后端版本不一致时会在顶部与面板里提示重启。细节（界面说明、接口、加新采样参数改哪里、计时精度与采样率结论）
-见 `Mod/LapLog_Project/README.md` 与 `Mod/LapLog_Project/LapLog/README.md`。
+见 `Mod/LapLog_Project/README.md` 与 `Mod/LapLog_Project/LapLog/README.md`（中文版 `LapLog/README.zh-CN.md`；`LapLog/NOTICE.md` 顶部另有中文说明，署名与许可证以英文原文为准）。
 
 ## 部署到 GitHub Pages
 

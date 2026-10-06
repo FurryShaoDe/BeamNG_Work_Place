@@ -1,5 +1,7 @@
 # LapLog
 
+> Chinese version: [`README.zh-CN.md`](README.zh-CN.md). Keep both files in sync; this English file is the reference.
+
 A lap recorder for BeamNG.drive. It samples position, orientation, speed, driver
 inputs and chassis telemetry (the four wheel loads plus body roll/pitch), splits
 laps against a start gate you place anywhere on the map, stores every lap on disk,
@@ -159,11 +161,17 @@ Each lap is a flat array of samples at the recording rate (50 Hz by default):
 | 20 | rear-right wheel vertical load (N) |
 | 21 | body roll (rad) |
 | 22 | body pitch (rad) |
+| 23 | steering input, assists applied (-1..1, full lock = ±1) |
+| 24 | steering input, before the assists (-1..1) |
 
-Older 11-field samples still load; they simply carry no input data, and format-3
-samples carry no chassis telemetry. Samples from Ghost Racer Replay 1.2 and 1.6 are
-also readable. Columns are only ever appended, so a reader can always index what it
-knows and ignore the rest.
+Older 11-field samples still load; they simply carry no input data, format-3
+samples carry no chassis telemetry, and format-4 samples carry no steering. Samples
+from Ghost Racer Replay 1.2 and 1.6 are also readable. Columns are only ever
+appended, so a reader can always index what it knows and ignore the rest.
+
+Since format 5 the replay envelope also carries **`steeringWheelLock`** (degrees,
+one value per replay): columns 23/24 are normalized input space, and the lock
+turns them into steering-wheel degrees -- see *Steering (format 5)* below.
 
 ## Chassis telemetry (format 4)
 
@@ -199,6 +207,54 @@ What they are good for: weight transfer under braking/acceleration (front/rear
 split), cornering load distribution and inside-wheel lift (left/right split), steady
 state aero/ride load, and body roll/pitch as the suspension response to steering and
 pedal inputs.
+
+## Steering (format 5)
+
+Two columns, both in normalized input space (**±1 = full lock**, straight ahead = 0):
+
+- column 23 = `electrics.values.steering_input`, which is the value the car actually
+  steers with (the vehicle input module writes it and `input.steering` on the same
+  line, `lua/vehicle/input.lua:675-678`);
+- column 24 = `electrics.values.steeringUnassisted`, the same signal captured before
+  the input assists (`input.lua:487-488`: understeer reduction, autocenter,
+  slowdown assist). The difference between the two is how much the assists
+  interfered, which is a tuning read in its own right.
+
+Degrees need the vehicle's steering lock: `degrees = value × steeringWheelLock`,
+recorded once per replay in the envelope (the jbeam `input.steeringWheelLock`, or the
+value the hydros module back-fills for steering-hydro cars, `input.lua:175-182`; if
+neither exists the engine's own default **450** is recorded, `input.lua:42`).
+`input ±1` corresponds to ±lock, i.e. ±450° at the default. If only one of the two
+sources has a value at sample time (an assist that never reported, or a context
+without the mirror), both columns carry that value rather than leaving a hole in the
+array.
+
+Sign convention is **not** documented by the engine, and the two electrics differ:
+`electrics.values.steering` (degrees, steering-hydro cars only) is written negated
+(`hydros.lua:405`) while `steering_input` keeps the input sign, and the engine's own
+`tyreBarrier` uses `sign(steering_input)` for the road-wheel angle.
+
+**Measured on our own records (2026-10-04), because guessing this is not worth it:**
+column 23 (`steering_input`) reads **positive for a right-hand turn**. That was
+calibrated against the left/right wheel loads rather than against a remembered
+corner: `steering > 0` samples carry about 9.6 kN *more* on the left wheels (left =
+outer in a right turn), consistent across two vehicles (Hirochi SBR, ETK 800) and
+three recordings. The same trick pins down the viewer's derived `g_lat`, which
+correlates +0.88 with (right − left) load, i.e. its positive sign means "pushed to
+the right / turning left". The two are therefore opposite by construction, which is
+why the viewer's "flip steering direction" switch defaults to on: with it, positive
+steering = left turn = positive g, and the balance scatter sits in quadrants I/III.
+If you record with a different input stack, re-run that calibration (compare
+`steering` against `load_fl+load_rl` vs `load_fr+load_rr`) instead of trusting a
+remembered direction.
+
+Cost: two numbers per sample (about 12 bytes, ~5% on top of format 4) and two
+`electrics.values` reads, i.e. the same one-frame freshness as the pedals. 50 Hz is
+plenty -- steering is a hand input with 2-3 Hz of real content.
+
+For the real road-wheel angle there is no electrics channel; the engine computes it
+from node geometry (`controller/tech/tyreBarrier.lua:26-31`), so that is the route to
+copy if a later format wants the actual steering angle at the wheels.
 
 ## Sample rate
 

@@ -12,15 +12,39 @@
   /* 必须与 server.py 的 VIEWER_CODE_VERSION 一致。查看器是「常驻进程 + 每次请求现读静态文件」：
      服务端没重启时，浏览器会拿到新前端配旧 API，新通道全部缺席、面板静默留空
      （2026-10-04 用户实际踩到）。两侧版本不一致就在这里明说，别再让人猜。 */
-  var SERVER_CODE = 5;
+  var SERVER_CODE = 6;
 
   /* 数据里已经有第 17 列、但服务端没发 load_fl：同样是"查看器进程没重启"的迹象 */
   function serverTooOldForChassis(lap) {
     return !!(!lap.channels.load_fl && lap.meta && lap.meta.columns >= 17);
   }
 
+  /* 同理：第 23 列（转向）已经在数据里，但服务端没发 steering 通道 */
+  function serverTooOldForSteering(lap) {
+    return !!(!lap.channels.steering && lap.meta && lap.meta.columns >= 23);
+  }
+
   /* 四轮载荷通道，顺序固定 前左/前右/后左/后右（与模组样本第 17-20 列一致） */
   var CORNER_CHANNELS = ['load_fl', 'load_fr', 'load_rl', 'load_rr'];
+
+  /* 转向平衡图的速度段（km/h，[下限, 上限)，兜底下限 40 是为了躲开停车/挪车的方向盘噪声） */
+  var BALANCE_BANDS = {
+    'all': [40, Infinity],
+    '40-80': [40, 80],
+    '80-140': [80, 140],
+    '140-200': [140, 200],
+    '200+': [200, Infinity]
+  };
+  var BALANCE_BAND_LABELS = {
+    'all': '全部（≥40 km/h）',
+    '40-80': '40–80 km/h',
+    '80-140': '80–140 km/h',
+    '140-200': '140–200 km/h',
+    '200+': '200+ km/h'
+  };
+  /* "剔除打滑/异常样本"的判据：滑移角超过这个度数（打滑/掉头），
+     或者四轮总载荷不到本圈中位数的一半（腾空、骑上路肩、靠护栏）。 */
+  var BALANCE_SLIP_LIMIT_DEG = 15;
 
   var state = {
     catalog: null,
@@ -36,6 +60,12 @@
        'world' = 叠实测世界姿态（roll/pitch 原样，含地形）
        'road'  = 叠实测 − 地形坡度（只对俯仰有效；侧倾的坡度分量样本里还原不出来） */
     suspTilt: 'load',
+    /* 转向平衡图：只统计选定速度段里的样本（停车/巡航时方向盘角与横向 g 都不代表极限），
+       clean = 剔除打滑与"轮胎没在承重"的样本，
+       flip  = 把记录的转向符号翻转。默认开启：用左右轮载荷差实测（corr(g, 右−左载荷)=+0.88），
+       记录的 steering 正号 = 右转，而横向 g 正号 = 左转，两者天生相反（两台车、三份数据一致），
+       翻过来之后"正 = 左转"，散点回到一、三象限。 */
+    balance: { band: 'all', clean: true, flip: true },
     filter: 'all',      // 'all' | 'complete' | 'manual' | 'incomplete'
     view: null,         // [x0, x1]
     viewAuto: true,     // true = 视野随数据自动适配；用户缩放/平移后置 false
@@ -68,6 +98,7 @@
   var charts = {};
   var map = null;
   var susp = null;
+  var balance = null;
   var el = {};
 
   function $(id) {
@@ -324,6 +355,9 @@
     return ys[lo] + (ys[hi] - ys[lo]) * f;
   }
 
+  /* ΔT 图在数据不足时的提示（少于两圈没有可比对象） */
+  var DELTA_EMPTY_TEXT = '勾选两圈以上后，这里显示相对最快圈的时间差（ΔT）';
+
   /* ΔT：以最快圈为参考，按距离对齐的真实时间差 */
   function deltaSeries(reference, lap) {
     var refDist = reference.channels.dist.values;
@@ -475,6 +509,26 @@
     return path;
   }
 
+  /* 转向读数：方向盘角（度，服务端已按该车锁角换算），括号里是助力前的同一信号
+     —— 两者不同时才有必要显示，差值就是助力介入量。没有转向列的记录返回 null。 */
+  function steerReadout(lap) {
+    if (serverTooOldForSteering(lap)) return '⚠ 需重启查看器';
+    if (!channelAvailable(lap, 'steering')) return null;
+    var at = state.cursorX;
+    if (at === null || at === undefined) return '—';
+    var axis = axisValues(lap);
+    var flip = state.balance.flip ? -1 : 1;
+    var value = interp(axis, lap.channels.steering.values, at) * flip;
+    var text = (value > 0 ? '+' : '') + value.toFixed(1) + '°';
+    if (channelAvailable(lap, 'steering_raw')) {
+      var raw = interp(axis, lap.channels.steering_raw.values, at) * flip;
+      if (Math.abs(raw - value) >= 0.1) {
+        text += '（助力前 ' + (raw > 0 ? '+' : '') + raw.toFixed(1) + '°）';
+      }
+    }
+    return text;
+  }
+
   function renderReadout() {
     var laps = visibleLaps();
     if (!laps.length) {
@@ -497,6 +551,7 @@
       var staleServer = serverTooOldForChassis(lap);
       var loads = staleServer ? '⚠ 需重启查看器' : (at === null ? '—' : loadReadout(lap));
       var attitude = (at === null || staleServer) ? null : attitudeReadout(lap);
+      var steer = channelAvailable(lap, 'steering') ? steerReadout(lap) : null;
       var slipText = '—';
       var slipStyle = '';
       if (slip !== null) {
@@ -512,6 +567,8 @@
         '<span>油门 ' + (throttle === null ? '—' : throttle.toFixed(0) + '%') + '</span>' +
         '<span>刹车 ' + (brake === null ? '—' : brake.toFixed(0) + '%') + '</span>' +
         '<span>横向G ' + (glat === null ? '—' : glat.toFixed(2)) + '</span>' +
+        (steer ? '<span title="方向盘角 = 记录输入 × 该车锁角（正 = 左转，已按左右轮载荷定标）；括号内是助力前的同一信号，差值 = 助力介入量">方向 ' +
+          steer + '</span>' : '') +
         '<span title="四轮垂直接地载荷（前左|前右 后左|后右）；旧记录没有这一列">载荷 ' + loads + '</span>' +
         (attitude ? '<span title="侧倾 / 俯仰，正负为引擎 getRollPitchYaw() 原始符号">' +
           attitude.text + '</span>' : '') +
@@ -536,6 +593,7 @@
     renderReadout();
     renderMap(laps, labels);
     renderCharts(laps, labels);
+    renderBalance(laps);
     renderSuspension();
     return { laps: laps, labels: labels };
   }
@@ -674,9 +732,12 @@
     var xUnit = state.xMode === 'dist' ? 'm' : 's';
 
     if (!laps.length) {
-      ['speed', 'pedals', 'gear', 'gforce', 'loads', 'attitude', 'delta'].forEach(function (name) {
+      ['speed', 'pedals', 'gear', 'gforce', 'steering', 'loads', 'attitude']
+        .forEach(function (name) {
         charts[name].setData([], view, [0, 1], xUnit);
       });
+      charts.delta.cursorMap = null;
+      charts.delta.setEmpty(DELTA_EMPTY_TEXT);
       return;
     }
 
@@ -715,6 +776,36 @@
       ];
     });
     charts.gforce.setData(gSeries, view, allRange(gSeries), xUnit + ' · g  （实线=横向，虚线=纵向）');
+
+    // 转向：format 5 才有的列，服务端已按该记录的车辆锁角把 -1..1 输入换算成度。
+    // 旧档案没有这两列（通道 available=false，曲线直接跳过）。
+    var anySteering = false;
+    var steeringStale = false;
+    for (var si = 0; si < laps.length; si++) {
+      if (channelAvailable(laps[si], 'steering')) anySteering = true;
+      if (serverTooOldForSteering(laps[si])) steeringStale = true;
+    }
+    var steeringHint = steeringStale
+      ? '  ⚠ 查看器服务端代码过旧：重启查看器后才显示'
+      : (anySteering ? '' : '  （该记录没有转向列：format 5 起才记录）');
+    var steerFlip = state.balance.flip ? -1 : 1;
+    var steeringSeries = buildSeries(laps, labels, function (lap, color) {
+      if (!channelAvailable(lap, 'steering')) return [];
+      var axis = axisValues(lap);
+      var made = [{
+        id: lap.id + ':steering', color: color, width: 1.6, x: axis,
+        y: lap.channels.steering.values.map(function (v) { return v * steerFlip; })
+      }];
+      if (channelAvailable(lap, 'steering_raw')) {
+        made.push({
+          id: lap.id + ':steeringraw', color: color, width: 1.2, dash: true, x: axis,
+          y: lap.channels.steering_raw.values.map(function (v) { return v * steerFlip; })
+        });
+      }
+      return made;
+    });
+    charts.steering.setData(steeringSeries, view, allRange(steeringSeries),
+      xUnit + ' · °  （实线=实际转向（助力后） 虚线=助力前）' + steeringHint);
 
     // 悬架载荷 / 车身姿态：format 4 才有的列。旧档案在这里没有数据，
     // 服务端会把这些通道标 available=false，于是曲线被跳过、面板留空。
@@ -757,10 +848,11 @@
     charts.attitude.setData(attitudeSeries, view, allRange(attitudeSeries),
       xUnit + ' · °  （实线=侧倾  虚线=俯仰(含地形)  点线=俯仰去地形）' + staleHint);
 
-    // ΔT：参考圈 = 最快的一圈（不足两圈时留空）
+    // ΔT：参考圈 = 最快的一圈（不足两圈时给提示，不再画默认坐标系）
     var deltaSeriesList = [];
+    var reference = null;
     if (laps.length >= 2) {
-      var reference = laps[0];
+      reference = laps[0];
       for (var i = 1; i < laps.length; i++) {
         if (laps[i].meta.lapTime && reference.meta.lapTime &&
             laps[i].meta.lapTime < reference.meta.lapTime) reference = laps[i];
@@ -788,9 +880,166 @@
       }
       deltaView = [min, max];
     }
-    charts.delta.setData(deltaSeriesList, deltaView || [0, 1],
-      deltaSeriesList.length ? allRange(deltaSeriesList) : [-1, 1],
-      'm（距离轴）· s  相对最快圈');
+    if (!deltaSeriesList.length || !reference) {
+      charts.delta.cursorMap = null;
+      charts.delta.setEmpty(DELTA_EMPTY_TEXT);
+    } else {
+      /* y 轴以 0 为中心对称：0 = 与最快圈打平，正值（慢）与负值（快）各占一半高度，
+         曲线不会因为数据整体偏一侧而贴着上/下边框，读差值时比例才直观。 */
+      var deltaRange = allRange(deltaSeriesList);
+      var reach = Math.max(Math.abs(deltaRange[0]), Math.abs(deltaRange[1])) * 1.04;
+      if (!isFinite(reach) || reach < 0.05) reach = 0.05;
+      /* 参考圈顺带给出「时间 → 距离」的换算：游标在时间模式下是秒，而 ΔT 图恒为距离轴，
+         不换算的话游标会落在 x 轴的百分之几处（画错位置、读数也错）。 */
+      var refTimes = reference.channels.t.values;
+      var refDist = reference.channels.dist.values;
+      charts.delta.cursorMap = function (x) {
+        if (state.xMode === 'dist') return x;
+        return interp(refTimes, refDist, x);
+      };
+      charts.delta.setData(deltaSeriesList, deltaView || [0, 1], [-reach, reach],
+        'm（距离轴）· s  相对最快圈');
+    }
+  }
+
+  /* 每圈的滑移角数组（度）= 车头朝向 − 行进方向，和读数里的滑移角同一套算法，
+     只是这里按样本算一遍并缓存在通道上（平衡图要按它筛掉打滑段）。 */
+  function balanceSlipDeg(lap) {
+    if (lap.channels._slipDeg) return lap.channels._slipDeg;
+    var heading = lap.channels.heading ? lap.channels.heading.values : null;
+    var posX = lap.channels.pos_x.values;
+    var posY = lap.channels.pos_y.values;
+    var out = new Array(posX.length);
+    for (var i = 0; i < posX.length; i++) {
+      var lo = Math.max(0, i - 2);
+      var hi = Math.min(posX.length - 1, i + 2);
+      var dx = posX[hi] - posX[lo];
+      var dy = posY[hi] - posY[lo];
+      if (!heading || (Math.abs(dx) < 1e-3 && Math.abs(dy) < 1e-3)) {
+        out[i] = 0;
+        continue;
+      }
+      out[i] = normalizeAngle(heading[i] - Math.atan2(dy, dx)) * 180 / Math.PI;
+    }
+    lap.channels._slipDeg = out;
+    return out;
+  }
+
+  /* 四轮总载荷（N）：判断轮胎到底在不在承重，用来剔除腾空/骑路肩/靠护栏的样本 */
+  function balanceTotalLoad(lap) {
+    if (!channelAvailable(lap, 'load_fl')) return null;
+    var fl = lap.channels.load_fl.values;
+    var fr = lap.channels.load_fr.values;
+    var rl = lap.channels.load_rl.values;
+    var rr = lap.channels.load_rr.values;
+    var out = new Array(fl.length);
+    for (var i = 0; i < fl.length; i++) out[i] = fl[i] + fr[i] + rl[i] + rr[i];
+    return out;
+  }
+
+  function medianOf(values) {
+    var sorted = values.slice().sort(function (a, b) { return a - b; });
+    return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+  }
+
+  /* 转向平衡图：方向盘角 vs 横向 g。
+     形状交给 balance.js 的 5° 分箱中位数/分位带（散点只当背景），数字只报两个：
+     ±15° 内的小角度斜率（转向效率）与平台值（抓地上限）。
+     注意这不是严格的转向不足梯度 K（K = δ/ay − L/v² 需要轴距并分段速度），
+     所以入口给的是速度段筛选 + 两个可比数字，而不是一根全段回归线。 */
+  function renderBalance(laps) {
+    if (!balance) return;
+    var flip = state.balance.flip ? -1 : 1;
+    var clean = state.balance.clean !== false;
+    var bandKey = BALANCE_BANDS[state.balance.band] ? state.balance.band : 'all';
+    var band = BALANCE_BANDS[bandKey];
+    var series = [];
+    var stale = false;
+    var anySteering = false;
+    var dropped = 0;
+    for (var i = 0; i < laps.length; i++) {
+      var lap = laps[i];
+      if (serverTooOldForSteering(lap)) stale = true;
+      if (!channelAvailable(lap, 'steering') || !channelAvailable(lap, 'g_lat')) continue;
+      anySteering = true;
+      var steer = lap.channels.steering.values;
+      var ay = lap.channels.g_lat.values;
+      var speed = lap.channels.speed.values;
+      var slip = clean ? balanceSlipDeg(lap) : null;
+      var total = clean ? balanceTotalLoad(lap) : null;
+      var loadFloor = total ? medianOf(total) * 0.5 : 0;
+      var points = [];
+      var limit = Math.min(steer.length, ay.length, speed.length);
+      for (var k = 0; k < limit; k++) {
+        if (!(speed[k] >= band[0] && speed[k] < band[1])) continue;
+        if (clean) {
+          if (slip && Math.abs(slip[k]) > BALANCE_SLIP_LIMIT_DEG) { dropped += 1; continue; }
+          if (total && total[k] < loadFloor) { dropped += 1; continue; }
+        }
+        points.push([steer[k] * flip, ay[k]]);
+      }
+      series.push({
+        id: lap.id,
+        label: lap.meta.lapTime ? C.formatClock(lap.meta.lapTime) : lap.id,
+        color: lapColor(findLap(lap.id) || {}, i),
+        points: points
+      });
+    }
+    var placeholder = stale ? '⚠ 查看器服务端代码过旧：重启查看器后才显示'
+      : (anySteering ? '当前速度段/筛选下没有可用样本' : '该记录没有转向列（format 5 起记录）');
+    var stats = balance.setData(series, { placeholder: placeholder, maxAbsDelta: 90 });
+    balance.draw();
+    // 一圈都没有转向列时别写"样本不足"——那是"根本没记"，不是"没跑到"
+    if (el.balanceNote) {
+      el.balanceNote.textContent = stats.length ? balanceNoteText(stats, laps, {
+        dropped: dropped,
+        cleaned: clean,
+        bandLabel: BALANCE_BAND_LABELS[bandKey]
+      }) : placeholder;
+    }
+  }
+
+  /* 平衡图下方的说明：只报"小角度斜率 + 平台值 + 拐点"，并写清筛选口径与锁角来源 */
+  function balanceNoteText(stats, laps, info) {
+    var parts = [];
+    var negative = false;
+    for (var i = 0; i < stats.length; i++) {
+      var stat = stats[i];
+      var text = stat.label + '：';
+      if (stat.slope === null) {
+        text += '±15° 内样本不足';
+      } else {
+        if (stat.slope < 0) negative = true;
+        text += '±15° 内 ' + stat.slope.toFixed(4) + ' g/°（≈ ' +
+          Math.abs(1 / stat.slope).toFixed(0) + ' °/g，n=' + stat.slopeSamples + '）';
+      }
+      if (stat.plateau !== null) {
+        text += ' · 平台 ' + stat.plateau.toFixed(2) + ' g（p90 ' +
+          stat.plateauP90.toFixed(2) + ' g）';
+        if (stat.kneeDeg !== null) text += ' · ≈' + Math.round(stat.kneeDeg) + '° 到顶';
+      }
+      if (stat.hidden) text += ' · ±90° 外 ' + stat.hidden + ' 点未画';
+      parts.push(text);
+    }
+    var note = parts.length ? parts.join('　·　') : '样本不足（换个速度段，或跑得再狠一点）';
+    if (negative) note += '　·　⚠ 斜率为负：记录的转向符号与横向 G 相反，勾/取消「反转转向方向」再看';
+    if (info.cleaned) {
+      note += '　·　已剔除打滑/异常 ' + info.dropped + ' 点（|滑移| > ' +
+        BALANCE_SLIP_LIMIT_DEG + '° 或总载荷 < 一半中位）';
+    }
+    note += '　·　速度段 ' + info.bandLabel;
+    return note + steeringLockNote(laps);
+  }
+
+  /* 锁角提示：角度 = 记录输入 × 该记录里的锁角；用了缺省值时必须说明 */
+  function steeringLockNote(laps) {
+    for (var i = 0; i < laps.length; i++) {
+      if (!channelAvailable(laps[i], 'steering')) continue;
+      var meta = laps[i].meta || {};
+      return '　·　锁角 ' + Number(meta.steeringWheelLock || 450).toFixed(0) + '°' +
+        (meta.steeringWheelLockDefault ? '（该记录没写锁角，按缺省值换算）' : '');
+    }
+    return '';
   }
 
   function renderSummary(laps, labels) {
@@ -1434,6 +1683,20 @@
       state.colorMode = this.value;
       renderAll();
     });
+    // 平衡图的样本口径（速度段 / 剔除异常）：只影响这张图，不碰曲线，所以不整页重画
+    $('balBand').addEventListener('change', function () {
+      state.balance.band = this.value;
+      renderBalance(visibleLaps());
+    });
+    $('balClean').addEventListener('change', function () {
+      state.balance.clean = this.checked;
+      renderBalance(visibleLaps());
+    });
+    // 转向符号翻转要同时影响转向曲线、读数与平衡图
+    $('balFlip').addEventListener('change', function () {
+      state.balance.flip = this.checked;
+      renderAll();
+    });
   }
 
   function boot() {
@@ -1451,16 +1714,20 @@
     el.rayHeading = $('rayHeading');
     el.rayTravel = $('rayTravel');
     el.rayLength = $('rayLength');
+    el.balanceNote = $('balanceNote');
 
     charts.speed = new C.LineChart($('ch-speed'));
     charts.pedals = new C.LineChart($('ch-pedals'));
     charts.gear = new C.LineChart($('ch-gear'));
     charts.gforce = new C.LineChart($('ch-gforce'));
+    charts.steering = new C.LineChart($('ch-steering'));
     charts.loads = new C.LineChart($('ch-loads'));
     charts.attitude = new C.LineChart($('ch-attitude'));
     charts.delta = new C.LineChart($('ch-delta'));
+    charts.delta.zeroLine = true;    // ΔT = 0（打平最快圈）的基线画重一档
     map = new C.TrackMap($('map'));
     susp = new window.SuspensionView($('ch-suspension'));
+    balance = new window.LapBalance.BalanceView($('ch-balance'));
 
     Object.keys(charts).forEach(function (name) {
       charts[name].onCursor = function (x) {
@@ -1479,6 +1746,7 @@
     window.addEventListener('resize', function () {
       if (map) { map.draw(); }
       if (susp) { susp.draw(); }
+      if (balance) { balance.draw(); }
       Object.keys(charts).forEach(function (name) { charts[name].draw(); });
     });
 

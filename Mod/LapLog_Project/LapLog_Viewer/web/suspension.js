@@ -170,11 +170,18 @@
     }
     this._caption(ctx, cxF, 16, '正视图 · 前轴（左 FL / 右 FR）');
 
-    /* ---------- 侧视图（整车） ---------- */
+    /* ---------- 侧视图（整车，车头朝左） ---------- */
     var cxS = half + 12 + (W - 16 - (half + 12)) / 2;
     var wb = Math.min((W - half) * 0.30, 150);
     var angPitch = this._tilt(frame.tiltPitch, 10);
-    var pivotY = groundY - frame.wheelRadius - 46 - 40;
+    var radius = frame.wheelRadius;
+    /* 车底（门槛）离地高度与轮拱：真车约为 1.4 倍轮径，车身下缘因此「套」在车轮上。
+       早先车底离地 1.27 倍轮径还多出一整条街，车轮整个挂在车底以下，像板车。 */
+    var sillH = radius * 1.4;
+    var archR = radius + 11;                 // 轮拱半径：比车轮大一圈，缝隙要一眼可见
+    var archCy = sillH - radius;             // 轮心在车身坐标里的 y（正 = 在车底线之下）
+    var archSpan = Math.sqrt(Math.max(1, archR * archR - archCy * archCy));  // 拱与车底线的交点横距
+    var pivotY = groundY - sillH - 40;       // profilePoint 里 py + 40 偏移的基准（局部 y=0 → 离地 sillH）
     var axleFront = (d[0] + d[1]) / 2;
     var axleRear = (d[2] + d[3]) / 2;
 
@@ -188,15 +195,50 @@
       return [cxS + r[0], pivotY + r[1] + cornerOffset(profileDeflection(px))];
     }
 
-    var undersideFront = profilePoint(-wb, 0);
-    var undersideRear = profilePoint(wb, 0);
+    /* 轮拱：从车底线上方鼓起的半圆（两端恰好落在车底线上，交于 ±archSpan）。
+       离散成折线是为了让每个顶点都吃上 profilePoint 的旋转与形变，而不是单独画一段圆弧。 */
+    function archPoints(wheelX) {
+      var steps = 14;
+      var out = [];
+      for (var i = 0; i <= steps; i++) {
+        var x = archSpan * (1 - 2 * (i / steps));      // +archSpan → -archSpan（右端 → 左端，经拱顶）
+        out.push([wheelX + x, archCy - Math.sqrt(Math.max(0, archR * archR - x * x))]);
+      }
+      return out;
+    }
+
+    /* 轮廓（局部坐标，y 向上为负）：车头 → 引擎盖 → 挡风 → 车顶 → 后窗 → 车尾，
+       再沿车底折返（后轮拱 → 中段车底 → 前轮拱）。
+       前/后悬约 0.36/0.42 倍半轴距，但不短于轮拱跨距 —— 画布很窄时轮廓也不会回折。 */
+    var overF = Math.max(wb * 0.36, archSpan + 6);
+    var overR = Math.max(wb * 0.42, archSpan + 6);
+    var profile = [
+      [-wb - overF, 0], [-wb - overF, -32], [-wb - wb * 0.17, -50],
+      [-wb * 0.42, -53], [-wb * 0.20, -108], [wb * 0.28, -114],
+      [wb * 0.70, -58], [wb + overR * 0.30, -52], [wb + overR * 0.78, -36],
+      [wb + overR, 0]
+    ];
+    profile.push([wb + archSpan, 0]);
+    profile = profile.concat(archPoints(wb));        // 后轮拱
+    profile.push([-wb + archSpan, 0]);               // 中段车底
+    profile = profile.concat(archPoints(-wb));       // 前轮拱
+
+    // 弹簧藏进轮拱（拱顶 → 轮心），端点仍由载荷形变驱动：车身下沉 → 弹簧被压短
+    var springTopY = archCy - archR + 6;
+    var sideCorners = [
+      { x: cxS - wb, name: '前轴', total: frame.loads[0] + frame.loads[1],
+        baseTotal: frame.base[0] + frame.base[1], top: profilePoint(-wb, springTopY) },
+      { x: cxS + wb, name: '后轴', total: frame.loads[2] + frame.loads[3],
+        baseTotal: frame.base[2] + frame.base[3], top: profilePoint(wb, springTopY) }
+    ];
+    // 车轮先画：车身轮廓随后盖住轮子的上半圈，轮拱缺口里只露出轮胎 ——
+    // 反过来的话轮胎整圆裸露在车底之下，像把轮子摆在地板上。
+    for (var s = 0; s < sideCorners.length; s++) {
+      this._wheel(ctx, sideCorners[s].x, groundY - radius, radius, false, false, 'side');
+    }
 
     ctx.save();
     ctx.beginPath();
-    var profile = [
-      [-wb - 36, 0], [-wb - 30, -24], [-wb - 4, -32], [26, -38],
-      [46, -70], [98, -72], [wb - 24, -44], [wb + 6, -32], [wb + 28, 0]
-    ];
     for (var p = 0; p < profile.length; p++) {
       var point = profilePoint(profile[p][0], profile[p][1]);
       if (p === 0) ctx.moveTo(point[0], point[1]);
@@ -210,22 +252,18 @@
     ctx.stroke();
     ctx.restore();
 
-    var sideCorners = [
-      { x: cxS - wb, index: 2, name: '前轴', total: frame.loads[0] + frame.loads[1],
-        baseTotal: frame.base[0] + frame.base[1], y: undersideFront[1] },
-      { x: cxS + wb, index: 3, name: '后轴', total: frame.loads[2] + frame.loads[3],
-        baseTotal: frame.base[2] + frame.base[3], y: undersideRear[1] }
-    ];
-    for (var s = 0; s < sideCorners.length; s++) {
-      var corner = sideCorners[s];
-      var axleDeflection = s === 0 ? (d[0] + d[1]) / 2 : (d[2] + d[3]) / 2;
-      this._wheel(ctx, corner.x, groundY - frame.wheelRadius, frame.wheelRadius, false, false, 'side');
-      this._coil(ctx, { x: corner.x, y: corner.y }, { x: corner.x, y: groundY - frame.wheelRadius * 2 });
-      this._cornerText(ctx, corner.x, corner.y - 104, corner.name,
+    // 弹簧与读数画在车体之上：弹簧穿过轮拱缺口接到轮心，压缩看得见
+    for (var s2 = 0; s2 < sideCorners.length; s2++) {
+      var corner = sideCorners[s2];
+      var axleDeflection = s2 === 0 ? (d[0] + d[1]) / 2 : (d[2] + d[3]) / 2;
+      this._coil(ctx, { x: corner.top[0], y: corner.top[1] },
+        { x: corner.x, y: groundY - radius + 6 });
+      // 读数整块挂在车顶上方（三行文字的下沿刚好压在车顶线之上）
+      this._cornerText(ctx, corner.x, corner.top[1] - 130, corner.name,
         corner.total, (corner.total - corner.baseTotal) * 1000,
-        axleDeflection, s === 0 ? -1 : 1);
+        axleDeflection, s2 === 0 ? -1 : 1);
     }
-    this._caption(ctx, cxS, 16, '侧视图 · 整车（左前 → 右后）');
+    this._caption(ctx, cxS, 16, '侧视图 · 整车（车头朝左）');
 
     /* ---------- 底部：载荷分配 + G-G + 状态 ---------- */
     this._strip(ctx, W, H, stripH, frame);

@@ -1,5 +1,15 @@
 # NOTICE
 
+> **中文说明（仅为方便阅读，非权威；以下英文原文为准）**
+>
+> LapLog 是**派生作品**：本目录里的每个 Lua / JavaScript 文件都源自
+> **Jesus Goose** 的 *Ghost Racer Replay* 与 **flintt** 的 *Ghost Racer Enhanced*（链接见下方英文原文），
+> 两者均以 **bCDDL 1.1** 发布；完整许可证文本在本目录的 `LICENSE`，所有保留下来的源文件都带有 bCDDL 头声明。
+>
+> 下方英文的 *What was changed relative to the upstream work* 一节逐条列出相对上游删掉了什么，以及三处
+> **有意改动**的行为：① 车辆重置不再把中断的尝试存成残圈（直接丢弃并重新布防）；② 磁盘路径与 Ghost Racer 的
+> `ghostReplays/` 完全分离，两个模组可同时安装；③ "ghost" 只作为内部标识符保留，所有用户可见的名称/文件名一律用 "lap"。
+
 LapLog is a derivative work. It contains no code authored for this project; every
 Lua and JavaScript file here began as a copy of, or was mechanically derived from,
 the following:
