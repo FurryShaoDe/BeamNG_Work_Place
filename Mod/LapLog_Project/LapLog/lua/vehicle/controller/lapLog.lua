@@ -14,7 +14,7 @@
 local M = {}
 M.type = "auxiliary"
 
-local CODE_VERSION = "1.0.3"
+local CODE_VERSION = "1.0.4"
 -- BeamNG can reload an external controller without invalidating package.loaded
 -- in that Vehicle VM. Clear only this mod's own submodules before the first
 -- require so Ctrl+L/F5 cannot combine a new controller with an older

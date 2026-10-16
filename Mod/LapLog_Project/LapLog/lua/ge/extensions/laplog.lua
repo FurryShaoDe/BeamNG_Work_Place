@@ -1,15 +1,16 @@
 -- LapLog -- game-engine extension.
 --
--- The vehicle VM owns every recording decision; this side only provides the two
--- things that VM cannot do for itself: drawing the start/finish gate beams in the
--- world, and rendering a toast that survives a vehicle reset (a message fired from
--- a vehicle VM mid-reset is wiped by the game's own reset UI teardown).
+-- The vehicle VM owns every recording decision; this side only provides what that
+-- VM cannot do for itself: drawing the start/finish gate beams in the world,
+-- rendering a toast that survives a vehicle reset (a message fired from a vehicle
+-- VM mid-reset is wiped by the game's own reset UI teardown), and the entry point
+-- for the bindable input action that collapses the HUD panel.
 --
 -- This Source Code Form is subject to the terms of the bCDDL, v. 1.1.
 
 local M = {}
 
-local CODE_VERSION = "1.0.0"
+local CODE_VERSION = "1.0.1"
 
 -- The upstream extension needed core_camera (Ghost chase camera) and a sibling
 -- ghostRecord extension (race PB files). Neither exists here, so M.dependencies
@@ -83,6 +84,23 @@ function M.showLapLogMessage(message, seconds, senderId)
     guihooks.message({txt = tostring(message)}, tonumber(seconds) or 3)
   end
   return true
+end
+
+-- ---------------------------------------------------------------------------
+-- Input action entry point
+-- ---------------------------------------------------------------------------
+
+-- Bound in Options > Controls; declared in
+-- lua/ge/extensions/core/input/actions/lapLog.json (ctx=tlua, so this runs in the
+-- GE VM). Collapsing is purely a HUD concern - it needs neither the player
+-- vehicle nor the recorder - so this only broadcasts to the app, which flips its
+-- own panel exactly as the header button does.
+function M.hotkeyToggleMinimize()
+  if type(guihooks) == "table" and type(guihooks.trigger) == "function" then
+    guihooks.trigger("LapLogToggleMinimize")
+    return true
+  end
+  return false
 end
 
 function M.onPreRender()

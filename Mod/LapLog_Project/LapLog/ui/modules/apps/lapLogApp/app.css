@@ -54,6 +54,74 @@ lap-log-app {
 .ll-dot.is-armed { background: #ffb020; }
 .ll-dot.is-ready { background: #35c759; }
 
+/* ---- collapsed panel (mini badge) -----------------------------------------
+   Collapsing is not just hiding the body: the panel has to stop occupying the
+   HUD slot it was laid out for, so app.js resizes the layout host element.
+   These rules shrink the panel itself as well, so the visible footprint is the
+   badge even if no host could be found (the slot keeps its size then, but shows
+   nothing but the badge). 104 px matches the badge box app.js applies. */
+.ll-app.is-minimized {
+  width: 104px;
+  height: 104px;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  overflow: visible;
+}
+
+.ll-mini {
+  position: relative;
+  display: block;
+  width: 104px;
+  height: 104px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(14, 17, 21, 0.95);
+  color: #e6e9ee;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ll-mini:hover { border-color: rgba(53, 199, 89, 0.6); }
+
+.ll-mini-core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #1c242d, #0c1014 72%);
+}
+.ll-mini-core small {
+  color: #9aa4b2;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.ll-mini-core strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status light, same classes as the header dot (dotClass). Sits on the inner
+   circle's upper-right; kept inside the 104 px box so nothing has to overflow. */
+.ll-mini-live {
+  position: absolute;
+  top: 15px;
+  right: 17px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #11161a;
+  border-radius: 50%;
+  background: #6b7280;
+}
+.ll-mini-live.is-recording { background: #ff4438; box-shadow: 0 0 8px rgba(255, 68, 56, 0.8); }
+.ll-mini-live.is-armed { background: #ffb020; }
+.ll-mini-live.is-ready { background: #35c759; }
+
 .ll-icon-btn {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.16);

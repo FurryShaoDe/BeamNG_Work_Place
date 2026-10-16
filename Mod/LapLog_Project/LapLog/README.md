@@ -35,6 +35,7 @@ LapLog/
   lua/vehicle/controller/lapLog.lua             the recorder (auxiliary controller)
   lua/vehicle/lapLog/                           recording, codec, registry, UI state
   lua/ge/extensions/laplog.lua                  GE side: gate beams, toasts, teardown
+  lua/ge/extensions/core/input/actions/         bindable input actions (mini panel)
   lua/ge/lapLog/markerRenderer.lua              draws the start/finish gate beams
   ui/modules/apps/lapLogApp/                    the panel
   scripts/laplog/modScript.lua                  manual-unload registration
@@ -62,6 +63,14 @@ overwriting each other.
 
 **Manual runs.** **Record a run** stores a clip without a lap time. It is listed
 separately and never counts as a timed lap or competes for a personal best.
+
+**Collapsing the panel.** Press the **−** button in the panel header, or the
+bindable **LapLog: Toggle mini panel** action (in *Options > Controls > Gameplay*),
+to shrink the whole app to a 104 px badge. The badge keeps the status light, the
+lap being timed and its running time -- or, when idle, the last lap and then the
+personal best -- and clicking it brings the full panel back. The collapsed state is
+remembered on this machine. Collapsing also shrinks the HUD layout slot itself, so
+the screen space is really freed instead of leaving an empty box behind.
 
 **A vehicle reset discards the attempt.** Pressing <kbd>R</kbd> or <kbd>Insert</kbd>
 mid-lap throws the samples away and re-arms the start: the next lap is timed from
