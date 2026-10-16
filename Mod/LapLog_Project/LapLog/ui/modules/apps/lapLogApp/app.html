@@ -10,16 +10,31 @@
   popup cannot open under CEF off-screen rendering, so <select> only looks
   clickable. Served by the toggleOptionMenu / select* handlers in app.js.
 -->
-<div class="bngApp ll-app">
-  <link rel="stylesheet" href="/ui/modules/apps/lapLogApp/app.css?v=1.0.0">
-  <div class="ll-head">
+<div class="bngApp ll-app" ng-class="{ 'is-minimized': minimized }">
+  <link rel="stylesheet" href="/ui/modules/apps/lapLogApp/app.css?v=1.0.4">
+
+  <!-- Collapsed state: the whole panel is replaced by one badge, so it can sit in
+       a corner while driving. Clicking it restores the full panel. The badge
+       carries the same status colour as the header dot. -->
+  <button type="button" class="ll-mini" ng-if="minimized"
+          ng-click="toggleMinimize()" title="{{ miniTitle }}">
+    <span class="ll-mini-core">
+      <small>{{ miniLabel }}</small>
+      <strong>{{ miniTime }}</strong>
+    </span>
+    <span class="ll-mini-live" ng-class="dotClass"></span>
+  </button>
+
+  <div class="ll-head" ng-if="!minimized">
     <span class="ll-dot" ng-class="dotClass"></span>
     <span class="ll-title">LapLog <small>{{ state.vehicle || "无车辆" }}</small></span>
     <button type="button" class="ll-icon-btn" title="重新连接车辆控制器"
             ng-click="reload()">&#8635;</button>
+    <button type="button" class="ll-icon-btn" title="折叠为小徽章"
+            ng-click="toggleMinimize()">&#8722;</button>
   </div>
 
-  <div class="ll-body">
+  <div class="ll-body" ng-if="!minimized">
     <div class="ll-status">
       <span>状态 <b>{{ statusText }}</b></span>
       <span ng-if="state.recording">第 <b>{{ state.autoLapNumber || 1 }}</b> 圈</span>

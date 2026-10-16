@@ -43,11 +43,23 @@
 //    and reloads the controller whenever they differ, so a drift turns into an
 //    unload/reload cycle on every state request. The value also busts the
 //    app.html cache, so bump both whenever either side changes.
+//
+// 7. Collapsing to the mini badge must resize the *layout host*, not just the
+//    panel. The panel only fills a slot the HUD layout sized - in 0.39 that is
+//    an ancestor (.overlay-item) carrying inline left/top/width/height - so a
+//    panel that shrinks by itself keeps its slot and saves no screen space.
+//    syncHostSize() writes the collapsed box onto that ancestor and restores it
+//    on expand; the original values are captured immediately before the first
+//    overwrite. The mini badge's own strings are computed in applyState like
+//    every other derived value (rule 2).
 
 angular.module('beamng.apps').directive('lapLogApp', [function () {
-  var APP_VERSION = '1.0.3';
+  var APP_VERSION = '1.0.4';
   var STORAGE_PREFIX = 'lapLog_';
   var CONTROLLER = 'lapLog';
+  // Collapsed panel size in px; mirrored by the .ll-app.is-minimized rules in
+  // app.css. Keep the two in sync.
+  var MINIMIZED_SIZE = 104;
 
   // Vehicle-side status values -> panel labels.
   var STATUS_LABELS = {
@@ -150,9 +162,13 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         });
       });
     },
-    controller: ['$scope', '$timeout', '$document', function ($scope, $timeout, $document) {
+    controller: ['$scope', '$element', '$timeout', '$document',
+      function ($scope, $element, $timeout, $document) {
       var connectionTimer = null;
       var connectionAttempts = 0;
+      // Saved inline size of the HUD layout host, captured when the panel
+      // collapses (null while expanded, see syncHostSize).
+      var expandedHostStyle = null;
 
       $scope.sampleRates = [20, 30, 50, 100];
       $scope.categories = [
@@ -171,6 +187,13 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
       $scope.selectedStartLabel = '未选择';
       $scope.categoryLabel = '完整圈';
       $scope.gateStateText = '';
+
+      // Collapsing is a panel-only preference: remembered locally, never pushed
+      // to the recorder. The badge strings are filled in by applyState.
+      $scope.minimized = readSetting('minimized', false) === true;
+      $scope.miniLabel = STATUS_LABELS.connecting;
+      $scope.miniTime = '--.---';
+      $scope.miniTitle = 'LapLog · 连接中 · 点击展开';
 
       $scope.state = {
         status: 'connecting', message: '正在连接…', ghosts: [], savedStartLines: []
@@ -232,6 +255,92 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         $scope.settings.categoryFilter = category.id;
         $scope.applyCategoryFilter();
       };
+
+      // ---- collapsed panel (mini badge) ------------------------------------
+      //
+      // The panel only fills a slot the HUD layout sized, so shrinking the panel
+      // alone would leave that slot - and its empty area - on screen. The node
+      // that actually carries the size is an ancestor of the directive element
+      // with inline width/height (.overlay-item in 0.39, grid-stack-item in the
+      // older gridster layouts), so the collapsed box is written there. Rule 7
+      // at the top of this file explains why this must not be simplified away.
+
+      function findAppHost() {
+        var root = $element[0];
+        var fallback = root ? root.parentElement : null;
+        var classMatch = null;
+        var node = fallback;
+        for (var depth = 0; node && depth < 6; depth += 1, node = node.parentElement) {
+          if (node.style && node.style.width && node.style.height) return node;
+          if (!classMatch) {
+            var className = typeof node.className === 'string' ? node.className : '';
+            if (/(^|\s)(overlay-item|bng-app|app-container|grid-stack-item|gridster-item)(\s|$)/i
+              .test(className)) {
+              classMatch = node;
+            }
+          }
+        }
+        return classMatch || fallback;
+      }
+
+      function syncHostSize() {
+        var host = findAppHost();
+        if (!host || !host.style) return;
+        if (!$scope.minimized) {
+          // Expanded: put the layout's own values back and forget them, so the
+          // next collapse captures whatever size the user has set by then.
+          if (!expandedHostStyle) return;
+          var keys = Object.keys(expandedHostStyle);
+          for (var i = 0; i < keys.length; i += 1) {
+            host.style[keys[i]] = expandedHostStyle[keys[i]];
+          }
+          expandedHostStyle = null;
+          return;
+        }
+        if (!expandedHostStyle) {
+          expandedHostStyle = {
+            width: host.style.width,
+            height: host.style.height,
+            minWidth: host.style.minWidth,
+            minHeight: host.style.minHeight,
+            maxWidth: host.style.maxWidth,
+            maxHeight: host.style.maxHeight
+          };
+        }
+        var size = MINIMIZED_SIZE + 'px';
+        host.style.width = size;
+        host.style.height = size;
+        host.style.minWidth = size;
+        host.style.minHeight = size;
+        host.style.maxWidth = size;
+        host.style.maxHeight = size;
+      }
+
+      $scope.toggleMinimize = function () {
+        $scope.minimized = !$scope.minimized;
+        writeSetting('minimized', $scope.minimized);
+        // Runs after this digest, so ng-if has already swapped the body for the
+        // badge and the host box matches what is actually on screen.
+        $timeout(syncHostSize, 0);
+      };
+
+      // The game re-broadcasts app:resized whenever the layout hands the app a
+      // new box (mount, HUD layout edit, resolution change). Without this the
+      // slot would grow back under a collapsed panel.
+      $scope.$on('app:resized', function () {
+        if ($scope.minimized) $timeout(syncHostSize, 0);
+      });
+
+      // Hotkey bridge: the bindable "toggle mini size" action declared in
+      // lua/ge/extensions/core/input/actions/lapLog.json makes the GE extension
+      // broadcast LapLogToggleMinimize. It arrives outside a digest, so the
+      // toggle runs inside $evalAsync - same reason as a state packet (rule 4).
+      $scope.$on('LapLogToggleMinimize', function () {
+        $scope.$evalAsync(function () {
+          $scope.toggleMinimize();
+        });
+      });
+
       // ---- derived values, computed once per state packet ----------------
 
       function formatTime(seconds) {
@@ -462,6 +571,29 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         }
         $scope.statusText = STATUS_LABELS[$scope.state.status]
           || $scope.state.status || '待机';
+
+        // Mini badge (collapsed panel): while timing, which lap and the running
+        // lap time; otherwise the last lap, then the personal best. Computed
+        // here so the template only reads plain properties (rule 2).
+        var miniLastLap = Number($scope.state.lastLapTime);
+        var miniBestLap = Number($scope.state.pbTime);
+        if ($scope.state.recording) {
+          $scope.miniLabel = $scope.state.autoLapActive === false
+            ? '录制中'
+            : '第 ' + (Number($scope.state.autoLapNumber) || 1) + ' 圈';
+          $scope.miniTime = formatTime($scope.state.elapsed);
+        } else if (miniLastLap > 0) {
+          $scope.miniLabel = '最近圈';
+          $scope.miniTime = formatTime(miniLastLap);
+        } else if (miniBestLap > 0) {
+          $scope.miniLabel = '最佳圈';
+          $scope.miniTime = formatTime(miniBestLap);
+        } else {
+          $scope.miniLabel = $scope.statusText;
+          $scope.miniTime = '--.---';
+        }
+        $scope.miniTitle = 'LapLog · ' + $scope.statusText + ' · 点击展开';
+
         $scope.selectedStartLabel = startLabelFor(
           $scope.state.savedStartLines, $scope.settings.selectedStartId);
         $scope.categoryLabel = categoryLabelFor($scope.settings.categoryFilter);
@@ -612,6 +744,9 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
       // separate ones from the constructor is what wedged the UI before.
 
       $timeout(function () {
+        // A remembered collapsed panel renders its badge on the first digest;
+        // this gives it the matching HUD slot box right away.
+        syncHostSize();
         connect(0);
         loadSavedSession();
       }, 0);
@@ -625,6 +760,12 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         if (connectionTimer !== null) {
           $timeout.cancel(connectionTimer);
           connectionTimer = null;
+        }
+        // Never leave the layout slot collapsed behind us: that box belongs to
+        // the HUD layout, and whatever is mounted there next would inherit it.
+        if (expandedHostStyle) {
+          $scope.minimized = false;
+          syncHostSize();
         }
         if ($document && typeof $document.off === 'function') {
           $document.off('click', closeOptionMenu);

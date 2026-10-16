@@ -29,6 +29,7 @@ LapLog/
   lua/vehicle/controller/lapLog.lua             记录器（auxiliary controller）
   lua/vehicle/lapLog/                           录制、编解码、注册表、UI 状态
   lua/ge/extensions/laplog.lua                  GE 侧：门柱光柱、提示、卸载清理
+  lua/ge/extensions/core/input/actions/         可绑定的输入动作（折叠迷你面板）
   lua/ge/lapLog/markerRenderer.lua              绘制起/终点门柱光柱
   ui/modules/apps/lapLogApp/                    面板
   scripts/laplog/modScript.lua                  手动卸载注册
@@ -49,6 +50,11 @@ LapLog/
 所以多条线路可以共用一个起点而互不覆盖。
 
 **手动录制**：**录制一段** 保存一段不带圈速的片段；它单独列出，永远不计入计时圈，也不参与个人最佳。
+
+**折叠面板**：按面板标题栏的 **−**，或在 *选项 > 控制 > 游戏玩法* 里绑定
+**LapLog: Toggle mini panel** 动作，整个面板会收成一个 104 px 的小徽章。徽章保留状态灯、
+正在计时的圈数与实时圈时——空闲时显示最近圈速、再退到个人最佳——点一下徽章即可展开。
+折叠状态在本机记住；折叠同时会把 HUD 布局槽位一起缩小，所以是真的腾出了屏幕空间，而不是只留一个空框。
 
 **车辆重置会丢弃本次尝试**：圈中按 <kbd>R</kbd> 或 <kbd>Insert</kbd> 会把样本丢掉并重新布防起点——
 下一圈从下一次**正向过门**开始计时，而不是从车恢复的位置算。不会写入库文件，所以残圈池不会被失败尝试占满。

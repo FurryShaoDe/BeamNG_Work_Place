@@ -1,0 +1,10 @@
+{
+  "laplog_toggle_ui_mini": {
+    "title": "LapLog: Toggle mini panel",
+    "desc": "Collapse the LapLog HUD app to its mini badge, or expand it back",
+    "cat": "gameplay",
+    "order": 921,
+    "ctx": "tlua",
+    "onDown": "if extensions and extensions.laplog and extensions.laplog.hotkeyToggleMinimize then extensions.laplog.hotkeyToggleMinimize() end"
+  }
+}
