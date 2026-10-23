@@ -14,7 +14,7 @@
 local M = {}
 M.type = "auxiliary"
 
-local CODE_VERSION = "1.0.4"
+local CODE_VERSION = "1.0.5"
 -- BeamNG can reload an external controller without invalidating package.loaded
 -- in that Vehicle VM. Clear only this mod's own submodules before the first
 -- require so Ctrl+L/F5 cannot combine a new controller with an older
@@ -29,6 +29,7 @@ local vehicleSubmodules = {
   "vehicle/lapLog/sessionState",
   "vehicle/lapLog/startRegistry",
   "vehicle/lapLog/startState",
+  "vehicle/lapLog/tireTelemetry",
   "vehicle/lapLog/uiRuntimeState",
   "vehicle/lapLog/uiStateBuilder"
 }
@@ -51,7 +52,14 @@ end
 -- the same signal before the input assists, both -1..1 input space. The envelope
 -- carries steeringWheelLock (degrees) so a reader can convert to degrees.
 -- Format-4 and older replays load unchanged; they carry no steering columns.
-local FORMAT_VERSION = 5
+-- 6 adds optional per-sample tyre telemetry: the four tread surface temperatures
+-- (C), the four carcass/core temperatures (C) and the four remaining-tread
+-- percentages, always in front-left, front-right, rear-left, rear-right order.
+-- The numbers come from Kagoni's Tyre Simulation when it is running on the car
+-- (see tireTelemetry.lua); a lap recorded without it carries no tyre columns at
+-- all, and the envelope carries tireSource so a reader can say where they came
+-- from. Format-5 and older replays load unchanged.
+local FORMAT_VERSION = 6
 local GHOST_LIBRARY_FORMAT_VERSION = 1
 local MAX_STORED_GHOSTS = 20
 local MAX_STORED_INCOMPLETE_GHOSTS = 20
@@ -172,6 +180,22 @@ local ROLL, PITCH = 21, 22
 -- (`electrics.values.steeringUnassisted`). Their difference is how much the
 -- assists interfered. Degrees = value x envelope.steeringWheelLock.
 local STEERING, STEERING_RAW = 23, 24
+-- Tyre telemetry, added in the format-6 recording. These twelve columns only
+-- exist when Kagoni's Tyre Simulation is running on the recorded car (see
+-- tireTelemetry.lua); they are all present in a lap or none of them are, so a
+-- reader can treat them as one block. Corner order is the same fixed
+-- front-left, front-right, rear-left, rear-right as the loads.
+-- TIRE_TEMP_* is the tread surface temperature in degrees C: the mean of the
+-- three tread zones (outer shoulder, centre, inner shoulder), i.e. what a
+-- pyrometer pressed into the tread would read. It is the fast signal that spikes
+-- inside one corner.
+local TIRE_TEMP_FL, TIRE_TEMP_FR, TIRE_TEMP_RL, TIRE_TEMP_RR = 25, 26, 27, 28
+-- TIRE_CORE_* is the carcass/core temperature in degrees C: the slow,
+-- whole-tyre number that drives pressure and the wear rate.
+local TIRE_CORE_FL, TIRE_CORE_FR, TIRE_CORE_RL, TIRE_CORE_RR = 29, 30, 31, 32
+-- TIRE_WEAR_* is the remaining tread life in percent (100 = fresh, 0 = worn
+-- through), exactly as the tyre mod reports it.
+local TIRE_WEAR_FL, TIRE_WEAR_FR, TIRE_WEAR_RL, TIRE_WEAR_RR = 33, 34, 35, 36
 -- Engine default when neither the jbeam `input.steeringWheelLock` nor a steering
 -- hydro provides one (vehicle input.lua:42). Recorded per replay so a reader can
 -- always turn input space into degrees.
@@ -189,9 +213,20 @@ local replayCodec = require("vehicle/lapLog/replayCodec").new({
     throttle = THROTTLE, brake = BRAKE, gear = GEAR, handbrake = HANDBRAKE, clutch = CLUTCH,
     loadFL = LOAD_FL, loadFR = LOAD_FR, loadRL = LOAD_RL, loadRR = LOAD_RR,
     roll = ROLL, pitch = PITCH,
-    steering = STEERING, steeringRaw = STEERING_RAW
+    steering = STEERING, steeringRaw = STEERING_RAW,
+    tireTempFL = TIRE_TEMP_FL, tireTempFR = TIRE_TEMP_FR,
+    tireTempRL = TIRE_TEMP_RL, tireTempRR = TIRE_TEMP_RR,
+    tireCoreFL = TIRE_CORE_FL, tireCoreFR = TIRE_CORE_FR,
+    tireCoreRL = TIRE_CORE_RL, tireCoreRR = TIRE_CORE_RR,
+    tireWearFL = TIRE_WEAR_FL, tireWearFR = TIRE_WEAR_FR,
+    tireWearRL = TIRE_WEAR_RL, tireWearRR = TIRE_WEAR_RR
   }
 })
+
+-- Tyre temperature/wear, tapped from Kagoni's Tyre Simulation when it runs on
+-- this car. Optional by design: without that mod every call below returns nil
+-- and the recordings simply carry no tyre columns.
+local tireTelemetry = require("vehicle/lapLog/tireTelemetry")
 
 local colorPresets = {
   orange = {255, 112, 24, 230},
@@ -449,15 +484,59 @@ local function readChassisTelemetry()
   return chassisSample
 end
 
+-- Tyre telemetry, optional and latched once per recording.
+--
+-- These numbers come from another mod (Kagoni's Tyre Simulation), tapped in
+-- tireTelemetry.lua. That mod may be missing, may be parked on a car it cannot
+-- simulate, or may be switched off, so the decision "does this lap carry tyre
+-- columns" is taken once, when recording starts: every row of the file then has
+-- the same length and a reader never meets a row where 0 C means "unknown"
+-- instead of "cold". A lap recorded without the mod carries no tyre columns at
+-- all, which is visible in the manifest (`hasTires`) and in the viewer.
+--
+-- If the feed stops mid-lap (the player gets out of the car, which is what the
+-- other mod keys its simulation off), the last known values are repeated instead
+-- of dropping the block, so the row length stays uniform. That is the only case
+-- where these columns are not live, and it reads as "the feed stopped", not as
+-- "the tyres stopped changing".
+local tireBlockActive = false
+local tireBlockSource = nil
+local tireSample = nil
+
+local function beginTireBlock()
+  tireSample = tireTelemetry.read()
+  tireBlockActive = tireSample ~= nil
+  tireBlockSource = tireBlockActive and tireTelemetry.sourceId() or nil
+  startGateConfig.trace(
+    "tire.bind", "active=%s source=%s %s",
+    tostring(tireBlockActive), tostring(tireBlockSource), tireTelemetry.status()
+  )
+end
+
+local function readTireTelemetry()
+  if not tireBlockActive then return nil end
+  local sample = tireTelemetry.read()
+  if sample ~= nil then tireSample = sample end
+  return tireSample
+end
+
 local function captureSample(timestamp)
   local throttle, brake, gear, handbrake, clutch = readDriverInputs()
   recordingState.points[#recordingState.points + 1] =
     replayCodec.captureSample(obj, timestamp, throttle, brake, gear, handbrake, clutch,
-      readChassisTelemetry(), readSteeringInputs())
+      readChassisTelemetry(), readSteeringInputs(), readTireTelemetry())
 end
 
 local function normalizeReplay(data)
   return replayCodec.normalizeReplay(data)
+end
+
+-- Whether a set of samples carries the format-6 tyre block. A lap carries all
+-- twelve columns or none of them, so the first row answers for the whole lap.
+local function pointsHaveTires(points)
+  return type(points) == "table"
+    and type(points[1]) == "table"
+    and points[1][TIRE_TEMP_FL] ~= nil
 end
 
 local function replayEnvelope(points, lapTime)
@@ -467,12 +546,20 @@ local function replayEnvelope(points, lapTime)
     normal = {startGateConfig.startLineNormalX, startGateConfig.startLineNormalY, startGateConfig.startLineNormalZ},
     halfWidth = AUTO_LINE_HALF_WIDTH
   } or nil
+  -- Where the tyre columns came from. Derived from the samples, not from the
+  -- current feed: a lap written in an earlier session (or imported) keeps its
+  -- own block even when this instance never saw a live payload.
+  local tireSource = nil
+  if pointsHaveTires(points) then
+    tireSource = tireBlockSource or tireTelemetry.sourceId()
+  end
   return replayCodec.replayEnvelope(points, lapTime, {
     sampleInterval = recordingState.activeSampleInterval,
     vehicle = v.data.vehicleDirectory,
     groundOffset = recordingState.groundOffset,
     steeringWheelLock = steeringWheelLockDegrees(),
-    startLine = startLine
+    startLine = startLine,
+    tireSource = tireSource
   })
 end
 
@@ -652,6 +739,8 @@ local function ensureGhostSamples(entry)
   entry.hasInputs = metadata.hasInputs == true
   entry.hasChassis = metadata.hasChassis == true
   entry.hasSteering = metadata.hasSteering == true
+  entry.hasTires = metadata.hasTires == true
+  entry.tireSource = entry.tireSource or metadata.tireSource
   -- The samples are also the authority for the lock (per-vehicle constant); a
   -- manifest written by an older build simply has no value here.
   entry.steeringWheelLock = entry.steeringWheelLock or metadata.steeringWheelLock
@@ -744,6 +833,9 @@ local function persistGhostSamples(entry)
   envelope.incompleteReason = entry.incompleteReason
   envelope.shareFingerprint = entry.shareFingerprint
   envelope.steeringWheelLock = entry.steeringWheelLock or envelope.steeringWheelLock
+  -- A ghost reloaded from disk keeps the tyre provenance its descriptor carried;
+  -- replayEnvelope only fills it in when this session still knows the source.
+  envelope.tireSource = entry.tireSource or envelope.tireSource
   local success = jsonWriteFile(targetFilename, envelope, false) ~= false
   if success then entry.file = targetFilename end
   return success
@@ -932,6 +1024,11 @@ local function addGhostToLibrary(points, lapTime, label, source, sampleIntervalO
     -- badge in the panel; the lock travels with the manifest so the viewer can
     -- print degrees for this lap.
     hasSteering = type(points[1]) == "table" and points[1][STEERING] ~= nil,
+    -- Whether this recording carries per-sample tyre telemetry (format 6), and
+    -- which mod produced it. Shown as a badge in the panel and used by the
+    -- viewer to say "this lap has no tyre data" instead of drawing zeros.
+    hasTires = pointsHaveTires(points),
+    tireSource = pointsHaveTires(points) and (tireBlockSource or tireTelemetry.sourceId()) or nil,
     steeringWheelLock = steeringWheelLockDegrees()
   }
   entry.shareFingerprint = shareFingerprintOverride
@@ -981,6 +1078,8 @@ saveGhostManifest = function()
       hasInputs = entry.hasInputs == true,
       hasChassis = entry.hasChassis == true,
       hasSteering = entry.hasSteering == true,
+      hasTires = entry.hasTires == true,
+      tireSource = entry.tireSource,
       steeringWheelLock = entry.steeringWheelLock,
       file = entry.file
     }
@@ -1105,7 +1204,11 @@ local function loadGhostLibrary(loadFilename, saveFilename, fallbackPoints, fall
           available = true,
           pinned = descriptor.pinned == true,
           hasInputs = descriptor.hasInputs == true,
-          hasChassis = descriptor.hasChassis == true
+          hasChassis = descriptor.hasChassis == true,
+          -- Format 6 tyre telemetry: carried by the descriptor so the badge is
+          -- right before the samples are loaded back from disk.
+          hasTires = descriptor.hasTires == true,
+          tireSource = descriptor.tireSource
         }
         if not pinned then
           loadedByCategory[category] = loadedByCategory[category] + 1
@@ -1210,6 +1313,10 @@ local function startRecording()
   local px, py, pz = obj:getPositionXYZ()
   local groundOffset = pz - startGateConfig.groundHeightAt(px, py, pz)
   setPublicRecordPoints(recordingState.begin(groundOffset))
+  -- Decided once per recording, before the first sample: does this lap carry
+  -- tyre temperature/wear columns at all? Never mid-lap, so every row of the
+  -- file has the same length.
+  beginTireBlock()
   playbackState.progressCursor = 1
   captureSample(0)
   if sessionState.autoLapActive then
@@ -2649,6 +2756,9 @@ end
 
 -- Fixed-step physics tick: this is where the recorder samples the car.
 function startGateConfig.update(dtSim)
+  -- The tyre feed arrives on graphics frames, so its freshness has to be aged
+  -- here, on the same clock the samples use.
+  tireTelemetry.tick(dtSim)
   updateRecording(dtSim)
 end
 
@@ -2697,6 +2807,11 @@ function startGateConfig.init()
     return
   end
   refreshWheelSampleTargets()
+  -- Tap the vehicle->UI stream channel so tyre telemetry from Kagoni's Tyre
+  -- Simulation can be recorded when that mod is present. Harmless without it.
+  startGateConfig.trace(
+    "tire.install", "ok=%s", tostring(tireTelemetry.install())
+  )
   startGateConfig.trace("controller.init", "ready")
   startGateConfig.sendUiState()
 end
@@ -2706,6 +2821,10 @@ function startGateConfig.reset()
     tostring(recordingState.active), #recordingState.points)
   -- The reset rebuilt the wheel rotator tables, so the load targets must follow.
   refreshWheelSampleTargets()
+  -- The tyre mod rebuilds its per-tyre state on reset too; numbers cached from
+  -- before the reset must not leak into the next lap.
+  tireTelemetry.invalidate()
+  tireTelemetry.install()
 
   -- A vehicle reset deliberately does NOT archive the interrupted attempt. The
   -- upstream Ghost Racer mod stores it as an "Incomplete" partial; here a reset

@@ -172,15 +172,32 @@ Each lap is a flat array of samples at the recording rate (50 Hz by default):
 | 22 | body pitch (rad) |
 | 23 | steering input, assists applied (-1..1, full lock = ±1) |
 | 24 | steering input, before the assists (-1..1) |
+| 25 | front-left tread surface temperature (°C) |
+| 26 | front-right tread surface temperature (°C) |
+| 27 | rear-left tread surface temperature (°C) |
+| 28 | rear-right tread surface temperature (°C) |
+| 29 | front-left tread core/carcass temperature (°C) |
+| 30 | front-right tread core/carcass temperature (°C) |
+| 31 | rear-left tread core/carcass temperature (°C) |
+| 32 | rear-right tread core/carcass temperature (°C) |
+| 33 | front-left remaining tread (%) |
+| 34 | front-right remaining tread (%) |
+| 35 | rear-left remaining tread (%) |
+| 36 | rear-right remaining tread (%) |
 
 Older 11-field samples still load; they simply carry no input data, format-3
-samples carry no chassis telemetry, and format-4 samples carry no steering. Samples
-from Ghost Racer Replay 1.2 and 1.6 are also readable. Columns are only ever
-appended, so a reader can always index what it knows and ignore the rest.
+samples carry no chassis telemetry, format-4 samples carry no steering, and
+format-5 samples carry no tyre telemetry. Samples from Ghost Racer Replay 1.2 and
+1.6 are also readable. Columns are only ever appended, so a reader can always
+index what it knows and ignore the rest.
 
 Since format 5 the replay envelope also carries **`steeringWheelLock`** (degrees,
 one value per replay): columns 23/24 are normalized input space, and the lock
 turns them into steering-wheel degrees -- see *Steering (format 5)* below.
+
+Since format 6 the envelope also carries **`tireSource`** (`"kagoni"`) when the lap
+has the twelve tyre columns, so a reader can say where those numbers came from --
+see *Tyre telemetry (format 6)* below.
 
 ## Chassis telemetry (format 4)
 
@@ -265,6 +282,69 @@ For the real road-wheel angle there is no electrics channel; the engine computes
 from node geometry (`controller/tech/tyreBarrier.lua:26-31`), so that is the route to
 copy if a later format wants the actual steering angle at the wheels.
 
+## Tyre telemetry (format 6)
+
+Twelve columns, in the same fixed front-left, front-right, rear-left, rear-right
+order as the loads:
+
+- **25-28 tread surface temperature (°C)** -- the mean of the three tread zones the
+  tyre model tracks (outer shoulder, centre, inner shoulder). This is what a
+  pyrometer pressed into the tread reads, and it is the fast signal: it swings
+  tens of degrees inside one corner.
+- **29-32 core / carcass temperature (°C)** -- the slow, whole-tyre number. It
+  drives the cavity pressure and the wear rate, and it lags the surface by tens of
+  seconds.
+- **33-36 remaining tread (%)** -- 100 = fresh, 0 = worn through.
+
+**Where the numbers come from.** BeamNG's own wheel API has no tyre temperature or
+wear: rotators expose load, slip, contact material and a pressure group, nothing
+about the rubber. The only code on the machine that simulates it is the third-party
+**Kagoni's Tyre Simulation** mod (`luukstyrethermalsandwear`), so LapLog taps that
+mod's output instead of inventing numbers. It publishes everything it computes
+with `gui.send("TyreWearThermals", stream)` at the end of its `updateGFX`
+(`lua/vehicle/extensions/auto/luukstyrethermalsandwear.lua:15851`). Inside the
+vehicle VM `gui` *is* `guihooks` (`lua/vehicle/main.lua:252`), so that call is
+`guihooks.send` = `queueStream`, and it runs on every graphics frame regardless of
+whether the tyre HUD app is open -- only the caching inside `queueStream` is
+conditional (`common/guihooks.lua:106-120`). `tireTelemetry.lua` therefore wraps
+`gui.send` once per vehicle VM, reads the payload, and calls the original
+untouched: no file of the other mod is edited, and nothing breaks when it is
+absent (the wrapper is one string compare per call).
+
+**It is optional, and the recording says so.** The decision "does this lap carry
+tyre columns" is taken **once, when recording starts** (`beginTireBlock`), from
+whether a fresh four-corner payload exists at that moment. Every row of a file
+therefore has the same length, and a lap recorded without the mod carries no tyre
+columns at all -- the descriptor gets `hasTires = false`, the panel shows no badge,
+and the viewer prints "this record has no tyre temperature/wear" instead of drawing
+a line at 0 °C / 0 %. A vehicle with fewer than four wheels, or one where the
+payload has no numeric temperature for a corner, is treated the same way.
+
+**Semantics worth knowing before reading a chart:**
+
+- Wheel corners are matched by the wheel names `FL`/`FR`/`RL`/`RR`; a vehicle that
+  names them differently falls back to the mod's own wheel order, so the corners
+  may be mislabelled (the same fallback the load columns use).
+- Wear is the mod's own `condition`, which already accounts for its non-wearable
+  tread reserve. It is **hard-zeroed on a burst tyre** by the mod itself, so a
+  deflated corner reads 0 % rather than its real depth.
+- The values are one graphics frame old at sample time (the mod integrates its
+  thermals in `updateGFX`), the same freshness as `electrics.values`.
+- If the feed stops mid-lap (the mod keys its simulation off the seated player, so
+  getting out of the car stops it), the last known values are repeated for the rest
+  of the lap. That is the only case where these columns are not live, and it reads
+  as "the feed stopped", not as "the tyres stopped changing".
+- Laps recorded before the mod was installed keep their own block: the source label
+  travels in the envelope, not from the current session.
+
+Cost: about 63 bytes/sample at typical values, i.e. **+45%** on top of a format-5
+row -- by far the largest single jump so far, because it adds twelve columns at
+once. At 50 Hz that is roughly 3 KB/s of driving, ~5.5 MB for a 30-minute session.
+The temperatures are low-frequency by nature; the wear columns change by tenths of
+a percent per lap, so they are mostly payload. If size ever matters, the honest
+trim is to drop the four core columns first (the surface ones are what a driver
+reads) or to sample this block at a lower rate than the rest of the row.
+
 ## Sample rate
 
 Selectable in the panel: 20 / 30 / 50 / 100 Hz, default 50 (`DEFAULT_SAMPLE_RATE`,
@@ -305,6 +385,10 @@ the star protects it from both pruning and deletion.
 ## Requirements
 
 Developed against BeamNG.drive 0.39.
+
+Optional: **Kagoni's Tyre Simulation** (third-party mod) for the format-6 tyre
+columns. Without it LapLog records everything else exactly as before and the laps
+simply carry no tyre data; nothing needs to be configured either way.
 
 ## Licence
 

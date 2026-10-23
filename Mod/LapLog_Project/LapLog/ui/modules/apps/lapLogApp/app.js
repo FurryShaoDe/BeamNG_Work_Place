@@ -54,7 +54,7 @@
 //    every other derived value (rule 2).
 
 angular.module('beamng.apps').directive('lapLogApp', [function () {
-  var APP_VERSION = '1.0.4';
+  var APP_VERSION = '1.0.5';
   var STORAGE_PREFIX = 'lapLog_';
   var CONTROLLER = 'lapLog';
   // Collapsed panel size in px; mirrored by the .ll-app.is-minimized rules in
@@ -384,6 +384,7 @@ angular.module('beamng.apps').directive('lapLogApp', [function () {
         if (lap.hasInputs === true) parts.push('含输入');
         if (lap.hasChassis === true) parts.push('含载荷');
         if (lap.hasSteering === true) parts.push('含转向');
+        if (lap.hasTires === true) parts.push('含胎温');
         if (lap.pinned === true) parts.push('已置顶');
         return parts.filter(Boolean).join(' · ');
       }
