@@ -48,6 +48,8 @@ function M.new(options)
       -- Format 5: this lap carries per-sample steering (panel badge).
       hasSteering = entry.hasSteering == true,
       steeringWheelLock = entry.steeringWheelLock,
+      -- Format 6: this lap carries tyre temperature/wear (panel badge).
+      hasTires = entry.hasTires == true,
       displayed = entry.displayed == true,
       isBest = entry.isBest == true,
       displayRank = entry.displayRank

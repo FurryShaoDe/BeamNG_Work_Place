@@ -46,7 +46,7 @@ WEB_DIR = ROOT_DIR / 'web'
 # 重启查看器。凡改动 CHANNEL_TABLE / SERVE_CHANNELS / DERIVED_CHANNELS 或返回结构，都要 +1。
 # 起因：服务端进程一直跑着旧代码，而静态文件是每次请求现读的，于是浏览器拿到新前端 + 旧 API，
 # 新通道永远缺席、面板静默留空（用户 2026-10-04 实际踩到）。
-VIEWER_CODE_VERSION = 6
+VIEWER_CODE_VERSION = 7
 
 DEGREES_PER_RADIAN = 180.0 / math.pi
 
@@ -80,6 +80,26 @@ CHANNEL_TABLE = [
     # 不是常数，所以换算不写在 scale 里，放到 build_channels() 里按记录换算成度。
     (23, 'steering',  '转向',     '°',    1.0),
     (24, 'steering_raw', '转向(助力前)', '°', 1.0),
+    # format 6（LapLog 1.0.5+）：轮胎遥测，角标顺序同 17-20 = 前左/前右/后左/后右。
+    # 这 12 列不是 LapLog 自己算的，而是从第三方模组 Kagoni's Tyre Simulation
+    # （内部名 luukstyrethermalsandwear）在玩家车上运行时输出的数据里取的：
+    #   *_temp_* 胎面表层温度（°C）= 该轮胎面内/中/外三分区的算术平均（像胎温计压进胎面）
+    #   *_core_* 胎体/核心温度（°C）= 该模组的 core_temp，慢变量，决定胎压与磨损速率
+    #   *_wear_* 剩余胎面（%）= 100 全新、0 磨光（模组自己的 condition）
+    # 记录时如果那个模组没装/没在玩家车上跑，整块 12 列都不写（available=False），
+    # 前端据此提示"这条记录不含轮胎数据"，而不是画一条 0 的假线。
+    (25, 'tire_temp_fl', '前左胎温', '°C', 1.0),
+    (26, 'tire_temp_fr', '前右胎温', '°C', 1.0),
+    (27, 'tire_temp_rl', '后左胎温', '°C', 1.0),
+    (28, 'tire_temp_rr', '后右胎温', '°C', 1.0),
+    (29, 'tire_core_fl', '前左胎体温度', '°C', 1.0),
+    (30, 'tire_core_fr', '前右胎体温度', '°C', 1.0),
+    (31, 'tire_core_rl', '后左胎体温度', '°C', 1.0),
+    (32, 'tire_core_rr', '后右胎体温度', '°C', 1.0),
+    (33, 'tire_wear_fl', '前左剩余胎面', '%', 1.0),
+    (34, 'tire_wear_fr', '前右剩余胎面', '%', 1.0),
+    (35, 'tire_wear_rl', '后左剩余胎面', '%', 1.0),
+    (36, 'tire_wear_rr', '后右剩余胎面', '%', 1.0),
 ]
 
 # 只把画图用得到的通道发给前端（省流量）；前向向量在服务端算完派生量后即可丢弃。
@@ -88,6 +108,9 @@ SERVE_CHANNELS = [
     'speed', 'throttle', 'brake', 'gear', 'handbrake', 'clutch',
     'load_fl', 'load_fr', 'load_rl', 'load_rr', 'roll', 'pitch',
     'steering', 'steering_raw',
+    'tire_temp_fl', 'tire_temp_fr', 'tire_temp_rl', 'tire_temp_rr',
+    'tire_core_fl', 'tire_core_fr', 'tire_core_rl', 'tire_core_rr',
+    'tire_wear_fl', 'tire_wear_fr', 'tire_wear_rl', 'tire_wear_rr',
 ]
 # 服务端派生的通道：距离 / 纵向加速度 / 横向 G / 航向（播放箭头用）/ 地形坡度 / 去地形俯仰
 DERIVED_CHANNELS = ['heading', 'dist', 'accel_lon', 'g_lat', 'grade', 'pitch_road']
@@ -424,6 +447,8 @@ def build_laps(lap_logs, group, level, start_id):
             'hasInputs': ghost.get('hasInputs') is True,
             # format 5：这条圈里有逐样本转向（面板据此提示/画转向曲线）
             'hasSteering': ghost.get('hasSteering') is True,
+            # format 6：这条圈里有轮胎温度/磨损（依赖第三方轮胎模组，可能整块缺席）
+            'hasTires': ghost.get('hasTires') is True,
             'orphan': False,
         })
     # 清单外的样本（例如手动录制残留）：一并列出，标记 orphan
@@ -444,6 +469,7 @@ def build_laps(lap_logs, group, level, start_id):
             'hasInputs': None,
             # 清单外的样本没有描述符，只能看列数（第一行）
             'hasSteering': envelope_columns(envelope) >= 23,
+            'hasTires': envelope_columns(envelope) >= 25,
             'orphan': True,
         })
     laps.sort(key=lambda lap: (lap['lapTime'] is None,
@@ -628,6 +654,9 @@ def load_lap(lap_logs, group, level, start_id, ghost_id):
             # 免得前端把缺省值当成这辆车的真实锁角。
             'steeringWheelLock': steering_lock or DEFAULT_STEERING_WHEEL_LOCK,
             'steeringWheelLockDefault': not (steering_lock and steering_lock > 0),
+            # 轮胎列的来源（"kagoni" = Kagoni's Tyre Simulation）。为 None 表示这圈
+            # 压根没有轮胎列 —— 前端据此给出"该记录不含轮胎数据"的说明。
+            'tireSource': envelope.get('tireSource') or (entry or {}).get('tireSource'),
         },
         'channels': channels,
     }
@@ -646,7 +675,13 @@ def export_csv(lap_logs, group, level, start_id, ghost_id):
     for cid, name in (('load_fl', 'load_fl_kn'), ('load_fr', 'load_fr_kn'),
                       ('load_rl', 'load_rl_kn'), ('load_rr', 'load_rr_kn'),
                       ('roll', 'roll_deg'), ('pitch', 'pitch_deg'),
-                      ('steering', 'steering_deg'), ('steering_raw', 'steering_raw_deg')):
+                      ('steering', 'steering_deg'), ('steering_raw', 'steering_raw_deg'),
+                      ('tire_temp_fl', 'tire_temp_fl_c'), ('tire_temp_fr', 'tire_temp_fr_c'),
+                      ('tire_temp_rl', 'tire_temp_rl_c'), ('tire_temp_rr', 'tire_temp_rr_c'),
+                      ('tire_core_fl', 'tire_core_fl_c'), ('tire_core_fr', 'tire_core_fr_c'),
+                      ('tire_core_rl', 'tire_core_rl_c'), ('tire_core_rr', 'tire_core_rr_c'),
+                      ('tire_wear_fl', 'tire_wear_fl_pct'), ('tire_wear_fr', 'tire_wear_fr_pct'),
+                      ('tire_wear_rl', 'tire_wear_rl_pct'), ('tire_wear_rr', 'tire_wear_rr_pct')):
         if channels[cid]['available']:
             order.append(cid)
             header.append(name)

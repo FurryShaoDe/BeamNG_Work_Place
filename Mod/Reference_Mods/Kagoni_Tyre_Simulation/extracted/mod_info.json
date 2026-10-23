@@ -1,0 +1,7 @@
+{
+  "name": "Kagoni Tyre Simulation — v1.5.0 PUBLIC",
+  "author": "Kagoni & Mahira; based on work by ZestyMaple98 and lucky4luuk",
+  "version": "1.5.0",
+  "description": "Kagoni Tyre Simulation v1.5.0 PUBLIC release. Includes multi-layer tread/core/cavity thermals, physical tread-depth and circumferential hotspot modelling, research-guided abrasion and destructive-sliding energy ownership, live pressure delta integration with BeamNG, tyre-construction stiffness, Standard/Sport/Sport Plus 2R/Slick/Rally/Drift profiles, Pit Manager with unified Normal/Racing preheat service, cold-fill PSI semantics and no KTS upper PSI cap, rewind/career wear integration, compact HUD telemetry, canonical four-wheel HUD ordering and the 200% transverse load-bias triangle display range. Development lap recorders, automated calibration drivers and JSON telemetry export are intentionally excluded from this package. Research provenance comments and direct source links remain embedded beside important physics constants.",
+  "type": "gameplay"
+}

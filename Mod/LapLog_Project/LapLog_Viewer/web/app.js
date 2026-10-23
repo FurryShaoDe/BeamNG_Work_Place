@@ -12,7 +12,7 @@
   /* 必须与 server.py 的 VIEWER_CODE_VERSION 一致。查看器是「常驻进程 + 每次请求现读静态文件」：
      服务端没重启时，浏览器会拿到新前端配旧 API，新通道全部缺席、面板静默留空
      （2026-10-04 用户实际踩到）。两侧版本不一致就在这里明说，别再让人猜。 */
-  var SERVER_CODE = 6;
+  var SERVER_CODE = 7;
 
   /* 数据里已经有第 17 列、但服务端没发 load_fl：同样是"查看器进程没重启"的迹象 */
   function serverTooOldForChassis(lap) {
@@ -24,8 +24,73 @@
     return !!(!lap.channels.steering && lap.meta && lap.meta.columns >= 23);
   }
 
+  /* 同理：第 25 列（轮胎温度）已经在数据里，但服务端没发 tire_temp_fl 通道 */
+  function serverTooOldForTires(lap) {
+    return !!(!lap.channels.tire_temp_fl && lap.meta && lap.meta.columns >= 25);
+  }
+
   /* 四轮载荷通道，顺序固定 前左/前右/后左/后右（与模组样本第 17-20 列一致） */
   var CORNER_CHANNELS = ['load_fl', 'load_fr', 'load_rl', 'load_rr'];
+  /* 四角固定配色（前左/前右/后左/后右，见 charts.js），载荷与两张轮胎图共用；
+     悬架示意正视图的角标也用它，所以"青色那条线"和"青色那个角"是同一件事。 */
+  var CORNER_COLORS = C.CORNER_COLORS;
+  /* 颜色被四角占用之后，多圈叠加只能靠线型区分圈：第一圈实线，之后虚线/点线/点划线/短虚线。
+     超过 5 圈就循环（反正 6 条同色线本来也读不清，够用即可）。 */
+  var LAP_DASHES = [null, [7, 4], [2, 3], [10, 3, 2, 3], [5, 3]];
+
+  function lapDash(index) {
+    return LAP_DASHES[index % LAP_DASHES.length];
+  }
+
+  /* 多圈叠加时"圈"的编码：主圈（点选的那一圈，也是读数/悬架示意用的那圈）= 实线加粗，
+     其余按出现顺序虚线/点线/点划线。四角颜色被占用了，圈只能靠线型表达；
+     给主圈实线是为了让"我现在在看的这一圈"一眼能挑出来。 */
+  function lapStyleMap(laps) {
+    var map = {};
+    var primary = null;
+    for (var i = 0; i < laps.length; i++) {
+      if (laps[i].id === state.primaryId) primary = laps[i].id;
+    }
+    if (primary === null && laps.length) primary = laps[0].id;
+    var secondary = 1;
+    for (var j = 0; j < laps.length; j++) {
+      var id = laps[j].id;
+      if (id === primary) {
+        map[id] = { width: 1.9, dash: null };
+      } else {
+        map[id] = { width: 1.3, dash: lapDash(secondary) };
+        secondary += 1;
+      }
+    }
+    return map;
+  }
+
+  /* 四角颜色键：三张四轮图的标题下方各一份，颜色由 JS 生成，
+     避免 palette 改了 HTML 里还留着旧色号。 */
+  function cornerKeyHtml() {
+    var out = [];
+    for (var i = 0; i < CORNER_CHANNELS.length; i++) {
+      out.push('<span><i style="background:' + CORNER_COLORS[i] + '"></i>' +
+        C.CORNER_NAMES[i] + '</span>');
+    }
+    return out.join('');
+  }
+
+  function fillCornerKeys() {
+    var ids = ['cornerKeyLoads', 'cornerKeyTemp', 'cornerKeyWear'];
+    for (var i = 0; i < ids.length; i++) {
+      var node = $(ids[i]);
+      if (node) node.innerHTML = cornerKeyHtml();
+    }
+  }
+  /* 轮胎三组通道，角标顺序与载荷一致（样本第 25-36 列）。这三组永远同进同退：
+     记录时轮胎模组没在跑就没有任何一组。 */
+  var TIRE_TEMP_CHANNELS = ['tire_temp_fl', 'tire_temp_fr', 'tire_temp_rl', 'tire_temp_rr'];
+  var TIRE_CORE_CHANNELS = ['tire_core_fl', 'tire_core_fr', 'tire_core_rl', 'tire_core_rr'];
+  var TIRE_WEAR_CHANNELS = ['tire_wear_fl', 'tire_wear_fr', 'tire_wear_rl', 'tire_wear_rr'];
+  /* 缺轮胎数据时给的说明：用户要的就是"这圈到底有没有记到"的明确回答。 */
+  var TIRE_MISSING_TEXT = '该记录不含轮胎温度/磨损：需要 Kagoni\'s Tyre Simulation 模组，' +
+    '并且录制这一圈时它正在玩家车上运行（format 6 起才记录）。';
 
   /* 转向平衡图的速度段（km/h，[下限, 上限)，兜底下限 40 是为了躲开停车/挪车的方向盘噪声） */
   var BALANCE_BANDS = {
@@ -60,6 +125,9 @@
        'world' = 叠实测世界姿态（roll/pitch 原样，含地形）
        'road'  = 叠实测 − 地形坡度（只对俯仰有效；侧倾的坡度分量样本里还原不出来） */
     suspTilt: 'load',
+    /* 轮胎温度图画哪一层：'surface' = 胎面表层（快），'core' = 胎体核心（慢）。
+       两层一起画是 4 角 × 2 层 = 8 条同色线，读不出来，所以用下拉分档。 */
+    tireLayer: 'surface',
     /* 转向平衡图：只统计选定速度段里的样本（停车/巡航时方向盘角与横向 g 都不代表极限），
        clean = 剔除打滑与"轮胎没在承重"的样本，
        flip  = 把记录的转向符号翻转。默认开启：用左右轮载荷差实测（corr(g, 右−左载荷)=+0.88），
@@ -293,21 +361,27 @@
     return !!(channel && channel.available !== false);
   }
 
-  /* 四轮载荷一行读数的紧凑写法：前 3.5|3.6 后 3.1|3.3 kN */
+  /* 四轮一组读数的紧凑写法：前 3.5|3.6 后 3.1|3.3（载荷/胎温/胎耗共用）。
+     这一圈没有对应的列时返回 null，调用方据此整段不显示，而不是显示 0。 */
+  function axleReadout(lap, channels, digits) {
+    var at = state.cursorX;
+    if (at === null || at === undefined) return '—';
+    var axis = axisValues(lap);
+    var pair = function (left, right) {
+      var l = interp(axis, lap.channels[left].values, at);
+      var r = interp(axis, lap.channels[right].values, at);
+      if (l === null || r === null) return '—';
+      return l.toFixed(digits) + '|' + r.toFixed(digits);
+    };
+    return '前 ' + pair(channels[0], channels[1]) + ' 后 ' + pair(channels[2], channels[3]);
+  }
+
+  /* 四轮载荷一行读数：前 3.5|3.6 后 3.1|3.3 kN */
   function loadReadout(lap) {
     if (serverTooOldForChassis(lap)) return '⚠ 需重启查看器';
     if (!channelAvailable(lap, 'load_fl')) return '—';
-    var at = state.cursorX;
-    if (at === null || at === undefined) return '—';
-    var v = function (cid) { return lap.channels[cid].values; };
-    var axis = axisValues(lap);
-    var pair = function (left, right) {
-      var l = interp(axis, v(left), at);
-      var r = interp(axis, v(right), at);
-      if (l === null || r === null) return '—';
-      return l.toFixed(1) + '|' + r.toFixed(1);
-    };
-    return '前 ' + pair('load_fl', 'load_fr') + ' 后 ' + pair('load_rl', 'load_rr') + ' kN';
+    var text = axleReadout(lap, CORNER_CHANNELS, 1);
+    return text === null ? '—' : text + ' kN';
   }
 
   /* 姿态读数：侧倾 / 俯仰，带正负号（引擎原始符号） */
@@ -489,6 +563,7 @@
     if (lap.orphan) badges.push('<span class="badge warn">清单外</span>');
     if (lap.manual) badges.push('<span class="badge">手动</span>');
     if (!lap.complete) badges.push('<span class="badge bad">未完成</span>');
+    if (lap.hasTires) badges.push('<span class="badge" title="这一圈记录了轮胎温度/磨损">胎温</span>');
     if (lap.pinned) badges.push('<span class="badge">置顶</span>');
     var csv = state.sel ? apiUrl('/api/export.csv?start=' +
       encodeURIComponent([state.sel.group, state.sel.level, state.sel.id].join('/')) +
@@ -552,6 +627,13 @@
       var loads = staleServer ? '⚠ 需重启查看器' : (at === null ? '—' : loadReadout(lap));
       var attitude = (at === null || staleServer) ? null : attitudeReadout(lap);
       var steer = channelAvailable(lap, 'steering') ? steerReadout(lap) : null;
+      /* 轮胎：整块 12 列同进同退，所以只要第一列在就够了。缺列时不是显示 0，
+         而是整段不出现（图卡下面另有明确的文字说明）。 */
+      var staleTires = serverTooOldForTires(lap);
+      var hasTires = !staleTires && channelAvailable(lap, 'tire_temp_fl');
+      var tireTempText = staleTires ? '⚠ 需重启查看器'
+        : (hasTires ? axleReadout(lap, TIRE_TEMP_CHANNELS, 1) : null);
+      var tireWearText = hasTires ? axleReadout(lap, TIRE_WEAR_CHANNELS, 1) : null;
       var slipText = '—';
       var slipStyle = '';
       if (slip !== null) {
@@ -570,6 +652,11 @@
         (steer ? '<span title="方向盘角 = 记录输入 × 该车锁角（正 = 左转，已按左右轮载荷定标）；括号内是助力前的同一信号，差值 = 助力介入量">方向 ' +
           steer + '</span>' : '') +
         '<span title="四轮垂直接地载荷（前左|前右 后左|后右）；旧记录没有这一列">载荷 ' + loads + '</span>' +
+        (tireTempText ? '<span title="胎面表层温度 = 该轮胎面内/中/外三分区平均（°C，胎温计压进胎面的读数），前左|前右 后左|后右；' +
+          '来自 Kagoni\'s Tyre Simulation，没有该模组的记录不会有这一项">胎温 ' + tireTempText +
+          (hasTires ? ' °C' : '') + '</span>' : '') +
+        (tireWearText ? '<span title="剩余胎面 %：100 = 全新，0 = 磨光；同一个模组的 condition，' +
+          '短距离基本不动，看的是趋势">胎耗 ' + tireWearText + ' %</span>' : '') +
         (attitude ? '<span title="侧倾 / 俯仰，正负为引擎 getRollPitchYaw() 原始符号">' +
           attitude.text + '</span>' : '') +
         '<span' + slipStyle + ' title="滑移角 = 车头朝向 − 行进方向（正 = 车头偏向行进方向左侧）；' +
@@ -727,12 +814,41 @@
     return [min - pad, max + pad];
   }
 
+  /* 轮胎面板下面的说明：这一圈到底有没有记到轮胎数据。
+
+     数据来自第三方模组，所以"没有"有三种常见原因：这圈不是 format 6、录制时没装
+     那个模组、或者装了但没在玩家车上跑（它的模拟只对坐着的玩家车生效）。这里不去
+     猜是哪一种，只把事实说清楚：勾选的圈里有几圈有、几圈没有。 */
+  function renderTireNotes(laps) {
+    var text = '';
+    if (laps.length) {
+      var withTires = 0;
+      var stale = false;
+      for (var i = 0; i < laps.length; i++) {
+        if (channelAvailable(laps[i], 'tire_temp_fl')) withTires += 1;
+        if (serverTooOldForTires(laps[i])) stale = true;
+      }
+      if (stale) {
+        text = '⚠ 查看器服务端代码过旧：重启查看器后才显示轮胎曲线。';
+      } else if (withTires === 0) {
+        text = TIRE_MISSING_TEXT;
+      } else if (withTires < laps.length) {
+        text = '勾选的 ' + laps.length + ' 圈里有 ' + (laps.length - withTires) +
+          ' 圈不含轮胎数据（录制时没装该模组，或它没在玩家车上运行），这些圈不出线。';
+      }
+    }
+    if (el.tireTempNote) el.tireTempNote.textContent = text;
+    if (el.tireWearNote) el.tireWearNote.textContent = text;
+  }
+
   function renderCharts(laps, labels) {
     var view = state.view || [0, 1];
     var xUnit = state.xMode === 'dist' ? 'm' : 's';
 
+    renderTireNotes(laps);
+
     if (!laps.length) {
-      ['speed', 'pedals', 'gear', 'gforce', 'steering', 'loads', 'attitude']
+      ['speed', 'pedals', 'gear', 'gforce', 'steering', 'loads', 'attitude', 'tiretemp', 'tirewear']
         .forEach(function (name) {
         charts[name].setData([], view, [0, 1], xUnit);
       });
@@ -740,6 +856,9 @@
       charts.delta.setEmpty(DELTA_EMPTY_TEXT);
       return;
     }
+
+    /* 四轮相关的三张图（载荷 / 胎温 / 胎耗）共用：颜色 = 角，线型 = 圈 */
+    var lapStyles = lapStyleMap(laps);
 
     var speedSeries = buildSeries(laps, labels, function (lap, color) {
       return [{
@@ -810,26 +929,78 @@
     // 悬架载荷 / 车身姿态：format 4 才有的列。旧档案在这里没有数据，
     // 服务端会把这些通道标 available=false，于是曲线被跳过、面板留空。
     var loadChannels = CORNER_CHANNELS;
-    var loadDashes = [null, [6, 3], [2, 3], [9, 3, 2, 3]];
     var staleChassis = false;
     for (var s = 0; s < laps.length; s++) {
       if (serverTooOldForChassis(laps[s])) staleChassis = true;
     }
     var staleHint = staleChassis ? '  ⚠ 查看器服务端代码过旧：重启查看器后才显示' : '';
-    var loadSeries = buildSeries(laps, labels, function (lap, color) {
+    var loadSeries = buildSeries(laps, labels, function (lap, color, i) {
       if (!channelAvailable(lap, 'load_fl')) return [];
       var axis = axisValues(lap);
+      var style = lapStyles[lap.id] || { width: 1.3, dash: null };
       var made = [];
       for (var c = 0; c < loadChannels.length; c++) {
         made.push({
-          id: lap.id + ':' + loadChannels[c], color: color, width: 1.4,
-          dash: loadDashes[c], x: axis, y: lap.channels[loadChannels[c]].values
+          id: lap.id + ':' + loadChannels[c], color: CORNER_COLORS[c],
+          width: style.width, dash: style.dash,
+          x: axis, y: lap.channels[loadChannels[c]].values
         });
       }
       return made;
     });
     charts.loads.setData(loadSeries, view, allRange(loadSeries),
-      xUnit + ' · kN  （实线=前左 虚线=前右 点线=后左 点划线=后右）' + staleHint);
+      xUnit + ' · kN  （颜色=四角，线型=圈）' + staleHint);
+
+    // 轮胎温度 / 磨损：format 6 才有的 12 列，而且只有录制时第三方轮胎模组
+    // （Kagoni's Tyre Simulation）在玩家车上运行时才写。缺列时通道 available=false，
+    // 曲线跳过、卡片下面的说明讲清原因（renderTireNotes）。
+    // 温度分两层画：表层是单圈内的快变量，核心是整体的慢变量，两者量级相近但
+    // 含义完全不同，混在一张图上 8 条同色线读不出来，所以用下拉切换。
+    var tireChannels = state.tireLayer === 'core' ? TIRE_CORE_CHANNELS : TIRE_TEMP_CHANNELS;
+    var tireLayerName = state.tireLayer === 'core' ? '胎体核心' : '胎面表层';
+    var tireTempSeries = buildSeries(laps, labels, function (lap, color, i) {
+      if (!channelAvailable(lap, 'tire_temp_fl')) return [];
+      var axis = axisValues(lap);
+      var style = lapStyles[lap.id] || { width: 1.3, dash: null };
+      var made = [];
+      for (var tc = 0; tc < tireChannels.length; tc++) {
+        made.push({
+          id: lap.id + ':' + tireChannels[tc], color: CORNER_COLORS[tc],
+          width: style.width, dash: style.dash,
+          x: axis, y: lap.channels[tireChannels[tc]].values
+        });
+      }
+      return made;
+    });
+    /* 没有轮胎数据时不要留一个 0–1 的假坐标系（ΔT 面板踩过这个坑：用户会以为
+       是坏图）。直接给一句空态，具体原因写在卡片下面的说明里。 */
+    if (tireTempSeries.length) {
+      charts.tiretemp.setData(tireTempSeries, view, allRange(tireTempSeries),
+        xUnit + ' · °C ' + tireLayerName);
+    } else {
+      charts.tiretemp.setEmpty('无轮胎温度数据');
+    }
+
+    var tireWearSeries = buildSeries(laps, labels, function (lap, color, i) {
+      if (!channelAvailable(lap, 'tire_wear_fl')) return [];
+      var axis = axisValues(lap);
+      var style = lapStyles[lap.id] || { width: 1.3, dash: null };
+      var made = [];
+      for (var wc = 0; wc < TIRE_WEAR_CHANNELS.length; wc++) {
+        made.push({
+          id: lap.id + ':' + TIRE_WEAR_CHANNELS[wc], color: CORNER_COLORS[wc],
+          width: style.width, dash: style.dash,
+          x: axis, y: lap.channels[TIRE_WEAR_CHANNELS[wc]].values
+        });
+      }
+      return made;
+    });
+    if (tireWearSeries.length) {
+      charts.tirewear.setData(tireWearSeries, view, allRange(tireWearSeries),
+        xUnit + ' · % 剩余胎面');
+    } else {
+      charts.tirewear.setEmpty('无轮胎磨损数据');
+    }
 
     var attitudeSeries = buildSeries(laps, labels, function (lap, color) {
       if (!channelAvailable(lap, 'roll')) return [];
@@ -1042,14 +1213,43 @@
     return '';
   }
 
+  /* 汇总表里的两格：这一圈出现过的最高胎面温度，以及这圈净磨掉了多少胎面
+     （四角里掉得最多的那一个，单位百分点）。没有轮胎列的圈给 "—"。 */
+  function tireSummaryCells(lap) {
+    if (!channelAvailable(lap, 'tire_temp_fl')) return '<td>—</td><td>—</td>';
+    var maxTemp = -Infinity;
+    for (var i = 0; i < TIRE_TEMP_CHANNELS.length; i++) {
+      var temps = lap.channels[TIRE_TEMP_CHANNELS[i]].values;
+      for (var k = 0; k < temps.length; k++) if (temps[k] > maxTemp) maxTemp = temps[k];
+    }
+    var haveWear = channelAvailable(lap, 'tire_wear_fl');
+    var used = 0;
+    if (haveWear) {
+      for (var c = 0; c < TIRE_WEAR_CHANNELS.length; c++) {
+        var wear = lap.channels[TIRE_WEAR_CHANNELS[c]].values;
+        if (wear.length < 2) continue;
+        var drop = wear[0] - wear[wear.length - 1];
+        if (drop > used) used = drop;
+      }
+    }
+    return '<td>' + (isFinite(maxTemp) ? maxTemp.toFixed(1) + ' °C' : '—') + '</td>' +
+      '<td>' + (haveWear ? '−' + used.toFixed(2) + ' %' : '—') + '</td>';
+  }
+
   function renderSummary(laps, labels) {
     if (!laps.length) {
       el.summary.innerHTML = '<div class="msg">勾选左侧圈记录后显示汇总</div>';
       return;
     }
+    /* 轮胎两列只在勾选的圈里真有轮胎数据时才出现，免得对没装模组的人凭空多两列 "—" */
+    var showTires = false;
+    for (var t = 0; t < laps.length; t++) {
+      if (channelAvailable(laps[t], 'tire_temp_fl')) { showTires = true; break; }
+    }
     var rows = ['<table><thead><tr><th>圈</th><th>圈速</th><th>距离</th><th>最高速</th>' +
       '<th>平均速</th><th>全油门</th><th>刹车</th><th>滑行</th><th>采样点</th><th>车型</th>' +
-      '<th>来源</th></tr></thead><tbody>'];
+      '<th>来源</th>' + (showTires ? '<th>最高胎温</th><th>本圈胎耗</th>' : '') +
+      '</tr></thead><tbody>'];
     for (var i = 0; i < laps.length; i++) {
       var lap = laps[i];
       var meta = lap.meta;
@@ -1085,6 +1285,7 @@
         '<td>' + meta.sampleCount + ' @ ' + (meta.sampleInterval || 0.02) + 's</td>' +
         '<td>' + escapeHtml(meta.vehicle || '—') + '</td>' +
         '<td>' + escapeHtml(meta.source || '—') + '</td>' +
+        (showTires ? tireSummaryCells(lap) : '') +
         '</tr>');
     }
     rows.push('</tbody></table>');
@@ -1608,6 +1809,10 @@
   /* ---------------- 启动 ---------------- */
 
   function bindControls() {
+    $('tireLayer').addEventListener('change', function () {
+      state.tireLayer = this.value === 'core' ? 'core' : 'surface';
+      renderCharts(visibleLaps(), labelMap());
+    });
     $('suspTilt').addEventListener('change', function () {
       state.suspTilt = this.value;
       renderSuspension();
@@ -1715,6 +1920,9 @@
     el.rayTravel = $('rayTravel');
     el.rayLength = $('rayLength');
     el.balanceNote = $('balanceNote');
+    el.tireTempNote = $('tireTempNote');
+    el.tireWearNote = $('tireWearNote');
+    fillCornerKeys();
 
     charts.speed = new C.LineChart($('ch-speed'));
     charts.pedals = new C.LineChart($('ch-pedals'));
@@ -1722,6 +1930,8 @@
     charts.gforce = new C.LineChart($('ch-gforce'));
     charts.steering = new C.LineChart($('ch-steering'));
     charts.loads = new C.LineChart($('ch-loads'));
+    charts.tiretemp = new C.LineChart($('ch-tiretemp'));
+    charts.tirewear = new C.LineChart($('ch-tirewear'));
     charts.attitude = new C.LineChart($('ch-attitude'));
     charts.delta = new C.LineChart($('ch-delta'));
     charts.delta.zeroLine = true;    // ΔT = 0（打平最快圈）的基线画重一档

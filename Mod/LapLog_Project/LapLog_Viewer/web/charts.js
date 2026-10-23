@@ -21,6 +21,13 @@
     '#ffd166', '#06d6a0', '#ef476f', '#118ab2', '#c77dff'
   ];
 
+  /* 四角固定配色：前左 / 前右 / 后左 / 后右（顺序与样本列 17-20、25-36 的角标一致）。
+     四轮相关的曲线（载荷、胎温、胎耗）与悬架示意正视图共用这一套，颜色只表示"哪个轮子"；
+     多圈叠加时线型表示"哪一圈"（主圈实线加粗，其余虚线/点线），所以两者不抢。
+     用颜色而不是线型，是因为四条同色曲线要靠线型分辨时，读者得先记住图例才能看图。 */
+  var CORNER_COLORS = [PALETTE.cyan, PALETTE.orange, PALETTE.green, PALETTE.magenta];
+  var CORNER_NAMES = ['前左', '前右', '后左', '后右'];
+
   function dpr() {
     return window.devicePixelRatio || 1;
   }
@@ -353,7 +360,7 @@
       if (!line.x || line.x.length < 2) continue;
       ctx.strokeStyle = line.color;
       ctx.lineWidth = line.width || 1.6;
-      // dash 可以是 true（默认虚线）或一个数组（自定义虚线样式，如四轮载荷）
+      // dash 可以是 true（默认虚线）或一个数组（自定义虚线样式，如四轮图上用来区分圈）
       if (Array.isArray(line.dash)) ctx.setLineDash(line.dash);
       else if (line.dash) ctx.setLineDash([5, 4]);
       else ctx.setLineDash([]);
@@ -750,6 +757,8 @@
   global.LapCharts = {
     PALETTE: PALETTE,
     LAP_COLORS: LAP_COLORS,
+    CORNER_COLORS: CORNER_COLORS,
+    CORNER_NAMES: CORNER_NAMES,
     fitCanvas: fitCanvas,
     niceTicks: niceTicks,
     speedColor: speedColor,

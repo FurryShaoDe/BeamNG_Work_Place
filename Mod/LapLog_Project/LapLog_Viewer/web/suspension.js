@@ -307,8 +307,10 @@
     ctx.closePath();
   };
 
-  /* 螺旋弹簧：两端点之间画成锯齿线圈 */
-  SuspensionView.prototype._coil = function (ctx, top, bottom) {
+  /* 螺旋弹簧：两端点之间画成锯齿线圈。
+     color 省略时用中性色（侧视图是按「前轴/后轴」合并的，没有单角含义，
+     给它套一个角颜色会骗人）；正视图逐角传 C.CORNER_COLORS，与曲线的四色对上。 */
+  SuspensionView.prototype._coil = function (ctx, top, bottom, color) {
     var dx = bottom.x - top.x;
     var dy = bottom.y - top.y;
     var len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -319,8 +321,8 @@
     var amp = 8;
     var turns = 6;
 
-    ctx.strokeStyle = COLOR.spring;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = color || COLOR.spring;
+    ctx.lineWidth = color ? 2.4 : 2;
     ctx.beginPath();
     ctx.moveTo(top.x, top.y);
     var lead = Math.min(8, len * 0.12);
@@ -432,11 +434,12 @@
     var radius = frame.wheelRadius;
     var wheelY = groundY - radius - (lifted ? this.maxLift : 0);
 
-    this._coil(ctx, { x: corner.x, y: mountY }, { x: corner.x, y: wheelY - radius * 0.2 });
+    var accent = C.CORNER_COLORS[index];
+    this._coil(ctx, { x: corner.x, y: mountY }, { x: corner.x, y: wheelY - radius * 0.2 }, accent);
     this._wheel(ctx, corner.x, wheelY, radius, lifted, true, 'tread');
     // loads/base 的单位是 kN（服务端已换算），Δ 单独换算成 N 显示，读数才有分辨率
     this._cornerText(ctx, corner.x, groundY - radius * 2 - 78, corner.name, load,
-      (load - base) * 1000, deflection, side);
+      (load - base) * 1000, deflection, side, accent);
 
     // 形变条：0 线在中间，向上 = 卸载，向下 = 压紧（与画面一致）
     var barX = side < 0 ? leftEdge : rightEdge;
@@ -459,8 +462,10 @@
   };
 
   /* 角上读数：名称 + 绝对载荷 + ΔN（按压/弹着色）。
-     车身横梁会压到读数上，所以文字一律先描一圈深色底（轨迹图的度数读数同款做法）。 */
-  SuspensionView.prototype._cornerText = function (ctx, x, y, name, kiloNewtons, deltaNewton, deflection, side) {
+     车身横梁会压到读数上，所以文字一律先描一圈深色底（轨迹图的度数读数同款做法）。
+     accent = 该角的固定颜色（正视图传 C.CORNER_COLORS），名称行用它，
+     这样"青色的那条线"和"青色的那个角"是同一件事；ΔN 行仍保留按压红/回弹青的语义色。 */
+  SuspensionView.prototype._cornerText = function (ctx, x, y, name, kiloNewtons, deltaNewton, deflection, side, accent) {
     var draw = function (text, offsetY, color, font) {
       ctx.font = font;
       ctx.lineWidth = 3;
@@ -472,7 +477,7 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
 
-    draw(name, 0, COLOR.muted, '11px Consolas, monospace');
+    draw(name, 0, accent || COLOR.muted, '11px Consolas, monospace');
     draw(kiloNewtons.toFixed(2) + ' kN', 17, COLOR.text, '13px Consolas, monospace');
     var sign = deltaNewton >= 0 ? '+' : '−';
     draw(sign + Math.round(Math.abs(deltaNewton)) + ' N', 32,

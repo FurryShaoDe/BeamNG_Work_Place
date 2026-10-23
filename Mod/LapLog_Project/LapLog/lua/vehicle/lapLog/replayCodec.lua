@@ -35,6 +35,45 @@ function M.new(options)
   -- (electrics.values.steeringUnassisted). Turning them into degrees needs the
   -- per-replay envelope.steeringWheelLock. Absent in older layouts.
   local STEERING, STEERING_RAW = indexes.steering, indexes.steeringRaw
+  -- Optional tyre telemetry (LapLog format 6), captured from Kagoni's Tyre
+  -- Simulation by tireTelemetry.lua: per-corner tread surface temperature (C),
+  -- carcass/core temperature (C) and remaining tread (%, 100 = fresh), in the
+  -- same fixed front-left, front-right, rear-left, rear-right order as the load
+  -- columns. Absent in older layouts, and absent on any recording made without
+  -- that mod running on the car. The twelve columns are only ever written as a
+  -- complete block (see captureSample), so their presence is a yes/no answer.
+  local TIRE_COLUMNS = nil
+  do
+    local surface = {
+      indexes.tireTempFL, indexes.tireTempFR, indexes.tireTempRL, indexes.tireTempRR
+    }
+    local core = {
+      indexes.tireCoreFL, indexes.tireCoreFR, indexes.tireCoreRL, indexes.tireCoreRR
+    }
+    local wear = {
+      indexes.tireWearFL, indexes.tireWearFR, indexes.tireWearRL, indexes.tireWearRR
+    }
+    local configured = true
+    for corner = 1, 4 do
+      if surface[corner] == nil or core[corner] == nil or wear[corner] == nil then
+        configured = false
+        break
+      end
+    end
+    if configured then
+      TIRE_COLUMNS = {}
+      for corner = 1, 4 do
+        TIRE_COLUMNS[corner] = surface[corner]
+        TIRE_COLUMNS[corner + 4] = core[corner]
+        TIRE_COLUMNS[corner + 8] = wear[corner]
+      end
+    end
+  end
+  local TIRE_FIRST = TIRE_COLUMNS and TIRE_COLUMNS[1]
+  local TIRE_W_LAST = TIRE_COLUMNS and TIRE_COLUMNS[12]
+  -- Twelve cells of scratch space, reused: the numbers are copied into the
+  -- sample immediately, so sampling allocates nothing.
+  local tireCells = {}
 
   local function quantizePedal(value)
     value = tonumber(value)
@@ -70,6 +109,30 @@ function M.new(options)
     return math.floor(value * 1000 + 0.5) / 1000
   end
 
+  -- A tread works between ambient and a couple of hundred degrees; one decimal
+  -- resolves everything the thermal model produces and keeps the value to four
+  -- characters. The clamp is not cosmetic: a third-party simulation blowing up
+  -- numerically must not write inf/nan into a recording.
+  local TEMPERATURE_MIN, TEMPERATURE_MAX = -100, 400
+  local function quantizeCelsius(value)
+    value = tonumber(value)
+    if value == nil or value ~= value then return nil end
+    if value < TEMPERATURE_MIN then value = TEMPERATURE_MIN
+    elseif value > TEMPERATURE_MAX then value = TEMPERATURE_MAX end
+    if value < 0 then return -math.floor(-value * 10 + 0.5) / 10 end
+    return math.floor(value * 10 + 0.5) / 10
+  end
+
+  -- Remaining tread in percent. Two decimals is what makes a per-lap wear delta
+  -- readable (a hard lap costs a fraction of a percent), while 100.00 still fits
+  -- in six characters.
+  local function quantizePercent(value)
+    value = tonumber(value)
+    if value == nil or value ~= value then return nil end
+    if value < 0 then value = 0 elseif value > 100 then value = 100 end
+    return math.floor(value * 100 + 0.5) / 100
+  end
+
   local codec = {}
 
   local function pointTime(point, fallbackIndex, interval)
@@ -90,11 +153,13 @@ function M.new(options)
   end
 
   -- `chassis` is the optional format-4 block
-  -- {loadFL=, loadFR=, loadRL=, loadRR=, roll=, pitch=} and `steering` the
-  -- optional format-5 block {assisted=, raw=} (both -1..1 input space). Either
-  -- is absent when the caller has nothing to record, which keeps the sample at
-  -- the previous length so nothing else has to care about the added columns.
-  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch, chassis, steering)
+  -- {loadFL=, loadFR=, loadRL=, loadRR=, roll=, pitch=}, `steering` the optional
+  -- format-5 block {assisted=, raw=} (both -1..1 input space) and `tires` the
+  -- optional format-6 block {surface={}, core={}, wear={}} (each four numbers in
+  -- FL/FR/RL/RR order: C, C, %). Any of them is absent when the caller has
+  -- nothing to record, which keeps the sample at the previous length so nothing
+  -- else has to care about the added columns.
+  function codec.captureSample(vehicleObject, timestamp, throttle, brake, gear, handbrake, clutch, chassis, steering, tires)
     local px, py, pz = vehicleObject:getPositionXYZ()
     local front = vehicleObject:getDirectionVector()
     local up = vehicleObject:getDirectionVectorUp()
@@ -139,6 +204,29 @@ function M.new(options)
         if STEERING_RAW then sample[STEERING_RAW] = quantizeSteering(raw) end
       end
     end
+    -- Format 6 tyre telemetry. `tires` is nil unless the caller decided, once
+    -- per recording, that this lap really has per-tyre data, so a lap either
+    -- carries all twelve columns or none of them. The block is assembled in
+    -- scratch space first and only then written, so a half-valid payload cannot
+    -- leave holes in the array.
+    if TIRE_COLUMNS and tires then
+      local complete = true
+      for corner = 1, 4 do
+        local surface = quantizeCelsius(tires.surface and tires.surface[corner])
+        local core = quantizeCelsius(tires.core and tires.core[corner])
+        local wear = quantizePercent(tires.wear and tires.wear[corner])
+        if surface == nil or core == nil or wear == nil then
+          complete = false
+          break
+        end
+        tireCells[corner] = surface
+        tireCells[corner + 4] = core
+        tireCells[corner + 8] = wear
+      end
+      if complete then
+        for index = 1, 12 do sample[TIRE_COLUMNS[index]] = tireCells[index] end
+      end
+    end
     return sample
   end
 
@@ -165,6 +253,10 @@ function M.new(options)
       -- Steering degrees = input space x this. Written since format 5; a file
       -- without it still loads, the reader just cannot convert to degrees.
       metadata.steeringWheelLock = tonumber(data.steeringWheelLock)
+      -- Which source produced the format-6 tyre columns ("kagoni"). Kept in this
+      -- whitelist on purpose: a field that is copied here is the only way it
+      -- survives loading a ghost back from disk.
+      metadata.tireSource = data.tireSource
     end
 
     if type(sourcePoints) ~= "table" or #sourcePoints == 0 then return nil end
@@ -174,6 +266,7 @@ function M.new(options)
     local hasInputs = false
     local hasChassis = false
     local hasSteering = false
+    local hasTires = false
     for index = 1, #sourcePoints do
       local point = sourcePoints[index]
       if type(point) == "table" then
@@ -226,6 +319,16 @@ function M.new(options)
             normalized[STEERING_RAW] = raw or normalized[STEERING]
             hasSteering = true
           end
+          -- Format 6 tyre telemetry. Same rule as the blocks above: a row written
+          -- before format 6 is simply shorter, so the columns stay absent and
+          -- read as "not recorded" instead of 0 C / 0 % wear.
+          if TIRE_FIRST and TIRE_W_LAST and #point >= TIRE_W_LAST then
+            for column = 1, 12 do
+              local key = TIRE_COLUMNS[column]
+              normalized[key] = tonumber(point[key]) or 0
+            end
+            hasTires = true
+          end
           points[#points + 1] = normalized
         end
       end
@@ -238,6 +341,7 @@ function M.new(options)
     metadata.hasInputs = hasInputs
     metadata.hasChassis = hasChassis
     metadata.hasSteering = hasSteering
+    metadata.hasTires = hasTires
     return points, metadata
   end
 
@@ -263,6 +367,10 @@ function M.new(options)
     if settings.steeringWheelLock then
       envelope.steeringWheelLock = settings.steeringWheelLock
     end
+    -- Which mod produced the format-6 tyre columns ("kagoni"). Written since
+    -- format 6 and only when the lap actually carries them, so its presence is
+    -- the authoritative answer to "does this record have tyre data".
+    if settings.tireSource then envelope.tireSource = settings.tireSource end
     return envelope
   end
 

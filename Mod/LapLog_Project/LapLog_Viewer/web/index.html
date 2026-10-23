@@ -63,12 +63,22 @@
   canvas { width: 100%; display: block; }
   #map { height: 460px; }
   #ch-speed, #ch-pedals, #ch-gear, #ch-gforce, #ch-steering,
-  #ch-loads, #ch-attitude { height: 148px; }
+  #ch-loads, #ch-attitude, #ch-tiretemp, #ch-tirewear { height: 148px; }
   /* ΔT 是看形状的对比图：比普通曲线高一点，纵向比例才不显得被压扁 */
   #ch-delta { height: 184px; }
   #ch-balance { height: 320px; }
   #ch-suspension { height: 320px; }
   .card h2 .ctrl { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  /* 控件标签不换行：否则长 hint 把「显示」挤成竖排的两行 */
+  .card h2 .ctrl label { white-space: nowrap; }
+  /* 四角颜色键（内容由 app.js 的 cornerKeyHtml() 按 charts.js 的 CORNER_COLORS 生成）：
+     颜色只表示"哪个轮子"，所以图例必须常驻——四条曲线靠颜色区分时，读者不该去背线型。 */
+  .corner-key {
+    display: flex; flex-wrap: wrap; gap: 2px 16px; margin: -2px 0 6px;
+    font: 11px/1.6 var(--mono); color: var(--text-secondary);
+  }
+  .corner-key span { display: inline-flex; align-items: center; gap: 5px; }
+  .corner-key i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 
   .msg { color: var(--text-muted); padding: 6px 2px; font-size: 12px; }
   .hint { color: var(--text-muted); font-size: 12px; }
@@ -262,8 +272,32 @@
     </section>
 
     <section class="card">
-      <h2>悬架载荷 <span class="hint">kN · 每圈四条 = 前左（实线）/ 前右（虚线）/ 后左（点线）/ 后右（点划线）· 需 format 4 记录</span></h2>
+      <h2>悬架载荷 <span class="hint">kN · 四色 = 四角（颜色与轮胎、悬架示意一致）· 多圈叠加时线型 = 圈（实线加粗 = 主圈）· 需 format 4 记录</span></h2>
+      <div class="corner-key" id="cornerKeyLoads"></div>
       <canvas id="ch-loads"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>轮胎温度 <span class="hint">°C · 表层 = 胎面三分区平均（胎温计读数，变化快）· 核心 = 胎体温度（慢变量，驱动胎压与磨损速率）· 多圈叠加时线型 = 圈</span>
+        <span class="ctrl">
+          <label>显示
+            <select id="tireLayer">
+              <option value="surface" selected>胎面表层</option>
+              <option value="core">胎体核心</option>
+            </select>
+          </label>
+        </span>
+      </h2>
+      <div class="corner-key" id="cornerKeyTemp"></div>
+      <canvas id="ch-tiretemp"></canvas>
+      <div class="hint" id="tireTempNote"></div>
+    </section>
+
+    <section class="card">
+      <h2>轮胎磨损 <span class="hint">% · 剩余胎面（100 = 全新，0 = 磨光）· 每圈只掉零点几个百分点，看的是趋势与前后轴差异，不是形状</span></h2>
+      <div class="corner-key" id="cornerKeyWear"></div>
+      <canvas id="ch-tirewear"></canvas>
+      <div class="hint" id="tireWearNote"></div>
     </section>
 
     <section class="card">

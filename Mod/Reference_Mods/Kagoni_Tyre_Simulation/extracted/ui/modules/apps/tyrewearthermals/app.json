@@ -1,0 +1,23 @@
+{
+  "domElement": "<tyre-wear-thermals></tyre-wear-thermals>",
+  "name": "Kagoni Tyre Simulation",
+  "types": [
+    "ui.apps.categories.debug",
+    "ui.apps.categories.vehicle_info",
+    "ui.apps.categories.info",
+    "ui.apps.categories.racing"
+  ],
+  "description": "KTS v1.5.0 PUBLIC tyre thermals, live pressure, tyre-construction stiffness, grip and physical wear telemetry.",
+  "css": {
+    "left": "0px",
+    "height": "176px",
+    "width": "148px",
+    "min-width": "48px",
+    "min-height": "42px",
+    "top": "0px",
+    "border-radius": "15px"
+  },
+  "author": "Kagoni & Mahira; based on ZestyMaple98 / lucky4luuk",
+  "version": "1.5.0",
+  "directive": "tyreWearThermals"
+}
