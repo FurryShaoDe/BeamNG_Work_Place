@@ -1,0 +1,107 @@
+{
+  "additionalAttributes": {
+    "difficulty": "medium"
+  },
+  "author": "ShaoDe",
+  "date": 1792886400,
+  "careerSetup": {
+    "defaultStarKeys": [
+      "timeBronze",
+      "timeSilver",
+      "timeGold"
+    ],
+    "showInFreeroam": true,
+    "skill": "(none)",
+    "starOutroTexts": {
+      "noStarUnlocked": "missions.dragRace.stars.outroNoStars",
+      "timeBronze": "missions.dragRace.stars.outroBronze",
+      "timeGold": "missions.dragRace.stars.outroGold",
+      "timeSilver": "missions.dragRace.stars.outroSilver"
+    },
+    "starRewards": {},
+    "starsActive": {
+      "reactionBronze": false,
+      "reactionGold": false,
+      "reactionSilver": false,
+      "thresholdBronze": true,
+      "thresholdGold": true,
+      "thresholdSilver": true,
+      "timeBronze": true,
+      "timeGold": true,
+      "timeSilver": true
+    }
+  },
+  "customAdditionalAttributes": {},
+  "description": "Heads-up drag race over 1000 m against an AI opponent on the SSRB test road. Your lane is the left half of the road; the AI runs the centre line.",
+  "devMission": false,
+  "grouping": {
+    "id": "",
+    "label": ""
+  },
+  "layers": [
+    {
+      "dir": "/gameplay/missions/ssrb/dragStripRace/001-ssrbDrag/",
+      "fixed": true,
+      "isMissionFolderDir": true
+    },
+    {
+      "dir": "/gameplay/missionTypes/dragStripRace/",
+      "fixed": true,
+      "isMissionTypeDir": true
+    }
+  ],
+  "missionType": "dragStripRace",
+  "missionTypeData": {
+    "camPath": false,
+    "dialBronze": 0.3,
+    "dialGold": 0.1,
+    "dialSilver": 0.2,
+    "dragFilepath": "/gameplay/missions/ssrb/dragStripRace/001-ssrbDrag/dragSettings.json",
+    "reactionBronze": 1,
+    "reactionGold": 0.2,
+    "reactionSilver": 0.5,
+    "startDesc": "Stage on the SSRB test road and beat the AI opponent over 1000 m.",
+    "startMessage": "SSRB 1000 m Drag Race",
+    "thresholdBronze": 1,
+    "thresholdGold": 4,
+    "thresholdSilver": 2,
+    "timeBronze": 30,
+    "timeGold": 20,
+    "timeSilver": 25
+  },
+  "name": "SSRB 1000 m Drag Race",
+  "retryBehaviour": "infiniteRetries",
+  "setupModules": {
+    "environment": {
+      "enabled": false
+    },
+    "traffic": {
+      "enabled": false
+    },
+    "vehicles": {
+      "enabled": false
+    }
+  },
+  "startCondition": {
+    "type": "always"
+  },
+  "startTrigger": {
+    "level": "ssrb",
+    "pos": [
+      0,
+      0,
+      70.5
+    ],
+    "radius": 12,
+    "rot": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "type": "coordinates"
+  },
+  "visibleCondition": {
+    "type": "always"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "id": "ssrbDrag",
+  "name": "SSRB 1000 m Drag Strip",
+  "description": "1000 m drag strip on the SSRB test road, starting 20 m south of the level spawn point. Lane 1 (player) at x=-9, lane 2 (AI) at x=0; both run from y=-20 towards -Y.",
+  "waypoints": [],
+  "lanes": [
+    {
+      "id": "ssrbDrag_lane1",
+      "name": "Left Lane",
+      "shortName": "Left",
+      "longName": "Left Lane",
+      "color": "blue",
+      "laneOrder": 1,
+      "zone": {
+        "name": "Left Lane Zone",
+        "color": [0.1, 0.45, 1],
+        "oldId": -1,
+        "customFields": { "names": {}, "tags": {}, "types": {}, "values": {} },
+        "top": { "active": false, "normal": [0, 0, 1], "pos": [0, 0, 10] },
+        "bot": { "active": false, "normal": [0, 0, -1], "pos": [0, 0, -10] },
+        "vertices": [
+          [-13.5, 10, 70],
+          [-4.7, 10, 70],
+          [-4.7, -1240, 70],
+          [-13.5, -1240, 70]
+        ]
+      },
+      "waypoints": [
+        {
+          "id": "ssrbDrag_lane1_spawn",
+          "name": "ssrbDrag_wp_spawn_1",
+          "type": "spawn",
+          "waypoint": { "mode": "limit", "speed": 20 },
+          "transform": {
+            "position": { "x": -9, "y": -20, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        },
+        {
+          "id": "ssrbDrag_lane1_stage",
+          "name": "ssrbDrag_wp_stage_1",
+          "type": "stage",
+          "waypoint": { "mode": "limit", "speed": 1 },
+          "transform": {
+            "position": { "x": -9, "y": -40, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        },
+        {
+          "id": "ssrbDrag_lane1_endLine",
+          "name": "ssrbDrag_lane1_endLine",
+          "type": "endLine",
+          "waypoint": { "mode": "set", "speed": 800 },
+          "transform": {
+            "position": { "x": -9, "y": -1040, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        }
+      ],
+      "metadata": { "created": "2026-10-26", "modified": "2026-10-26" }
+    },
+    {
+      "id": "ssrbDrag_lane2",
+      "name": "Right Lane",
+      "shortName": "Right",
+      "longName": "Right Lane",
+      "color": "red",
+      "laneOrder": 2,
+      "zone": {
+        "name": "Right Lane Zone",
+        "color": [1, 0.35, 0.2],
+        "oldId": -1,
+        "customFields": { "names": {}, "tags": {}, "types": {}, "values": {} },
+        "top": { "active": false, "normal": [0, 0, 1], "pos": [0, 0, 10] },
+        "bot": { "active": false, "normal": [0, 0, -1], "pos": [0, 0, -10] },
+        "vertices": [
+          [-4.3, 10, 70],
+          [13.4, 10, 70],
+          [13.4, -1240, 70],
+          [-4.3, -1240, 70]
+        ]
+      },
+      "waypoints": [
+        {
+          "id": "ssrbDrag_lane2_spawn",
+          "name": "ssrbDrag_wp_spawn_2",
+          "type": "spawn",
+          "waypoint": { "mode": "limit", "speed": 20 },
+          "transform": {
+            "position": { "x": 0, "y": -20, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        },
+        {
+          "id": "ssrbDrag_lane2_stage",
+          "name": "ssrbDrag_wp_stage_2",
+          "type": "stage",
+          "waypoint": { "mode": "limit", "speed": 1 },
+          "transform": {
+            "position": { "x": 0, "y": -40, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        },
+        {
+          "id": "ssrbDrag_lane2_endLine",
+          "name": "wp2",
+          "type": "endLine",
+          "waypoint": { "mode": "set", "speed": 800 },
+          "transform": {
+            "position": { "x": 0, "y": -1040, "z": 70 },
+            "rotation": { "x": 0, "y": 0, "z": 1, "w": 0 },
+            "scale": { "x": 1, "y": 1, "z": 1 }
+          }
+        }
+      ],
+      "metadata": { "created": "2026-10-26", "modified": "2026-10-26" }
+    }
+  ],
+  "metadata": { "created": "2026-10-26", "modified": "2026-10-26" }
+}
