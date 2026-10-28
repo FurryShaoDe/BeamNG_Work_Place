@@ -1,0 +1,9 @@
+{
+    "title": "Input Telemetry (fixed)",
+    "tag_line": "Live throttle, brake, clutch and steering graph for the HUD",
+    "message": "Adds a HUD app that draws your throttle, brake and clutch on a rolling graph, with three level bars for clutch, brake and gas and a grey steering trace.\n\nHow to use: open the HUD apps editor, add \"Input Telemetry (fixed)\" and place the panel. Values appear as soon as a vehicle is spawned.\n\nThis version publishes its own inputTelemetryFixed stream from a vehicle extension, so it does not depend on the shared electrics channel, and missing channels no longer throw errors.",
+    "version_string": "0.3.0",
+    "filename": "InputTelemetry.zip",
+    "tagid": "ITFX0001",
+    "icon": "icon.jpg"
+}

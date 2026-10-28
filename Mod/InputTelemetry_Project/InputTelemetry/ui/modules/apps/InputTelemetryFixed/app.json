@@ -1,0 +1,17 @@
+{
+  "domElement": "<input-telemetry-fixed></input-telemetry-fixed>",
+  "name": "Input Telemetry (fixed)",
+  "types": [
+    "ui.apps.categories.vehicle_info"
+  ],
+  "css": {
+    "left": "0px",
+    "height": "150px",
+    "top": "0px",
+    "width": "450px"
+  },
+  "description": "Live throttle, brake, clutch and steering graph. Fixed port of ArmensG Input Telemetry v0.1 (2024): subscribes to its own inputTelemetryFixed stream and tolerates missing channels.",
+  "author": "ArmenG (ported and fixed in BeamNG_Work_Place)",
+  "version": "0.3.0",
+  "directive": "inputTelemetryFixed"
+}
