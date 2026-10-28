@@ -3,3 +3,12 @@
 
 # Python 运行时缓存
 __pycache__/
+
+# 第三方参考模组：仅本地对照用，含原作 zip / 二进制，不随仓库分发
+Mod/Reference_Mods/
+
+# 未发布项目：本地开发中，暂不上传
+Mod/ActiveSuspension_Project/
+
+# 一次性调试脚本
+.tmp-*.py
